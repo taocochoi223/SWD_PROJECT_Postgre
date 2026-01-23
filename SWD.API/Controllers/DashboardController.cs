@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SWD.BLL.Interfaces;
+using SWD.API.Dtos;
+using System.Linq;
 
 namespace SWD.API.Controllers
 {
@@ -46,6 +48,82 @@ namespace SWD.API.Controllers
             };
 
             return Ok(stats);
+        }
+
+        /// <summary>
+        /// Get Hierarchy (Site -> Hub -> Sensor)
+        /// </summary>
+        [HttpGet("hierarchy")]
+        public async Task<IActionResult> GetHierarchyAsync()
+        {
+            var sites = await _siteService.GetSiteHierarchyAsync();
+            
+            var siteDtos = sites.Select(s => new SiteDashboardDto
+            {
+                SiteId = s.SiteId,
+                Name = s.Name,
+                Address = s.Address,
+                Hubs = s.Hubs?.Select(h => new HubDashboardDto
+                {
+                    HubId = h.HubId,
+                    Name = h.Name,
+                    MacAddress = h.MacAddress,
+                    IsOnline = h.IsOnline,
+                    LastHandshake = h.LastHandshake,
+                    Sensors = h.Sensors?.Select(se => new SensorDashboardDto
+                    {
+                        SensorId = se.SensorId,
+                        Name = se.Name,
+                        TypeName = se.Type?.TypeName ?? "Unknown",
+                        Unit = se.Type?.Unit ?? "",
+                        CurrentValue = (float?)se.CurrentValue,
+                        LastUpdate = se.LastUpdate,
+                        TotalReadings = se.Readings?.Count ?? 0
+                    }).ToList() ?? new List<SensorDashboardDto>()
+                }).ToList() ?? new List<HubDashboardDto>()
+            }).ToList();
+
+            return Ok(siteDtos);
+        }
+
+        /// <summary>
+        /// Get Hierarchy for specific Site (Site -> Hub -> Sensor)
+        /// </summary>
+        [HttpGet("site/{siteId}")]
+        public async Task<IActionResult> GetHierarchyBySiteIdAsync(int siteId)
+        {
+            var s = await _siteService.GetSiteHierarchyByIdAsync(siteId);
+            if (s == null)
+            {
+                return NotFound(new { message = "Site not found" });
+            }
+
+            var siteDto = new SiteDashboardDto
+            {
+                SiteId = s.SiteId,
+                Name = s.Name,
+                Address = s.Address,
+                Hubs = s.Hubs?.Select(h => new HubDashboardDto
+                {
+                    HubId = h.HubId,
+                    Name = h.Name,
+                    MacAddress = h.MacAddress,
+                    IsOnline = h.IsOnline,
+                    LastHandshake = h.LastHandshake,
+                    Sensors = h.Sensors?.Select(se => new SensorDashboardDto
+                    {
+                        SensorId = se.SensorId,
+                        Name = se.Name,
+                        TypeName = se.Type?.TypeName ?? "Unknown",
+                        Unit = se.Type?.Unit ?? "",
+                        CurrentValue = (float?)se.CurrentValue,
+                        LastUpdate = se.LastUpdate,
+                        TotalReadings = se.Readings?.Count ?? 0
+                    }).ToList() ?? new List<SensorDashboardDto>()
+                }).ToList() ?? new List<HubDashboardDto>()
+            };
+
+            return Ok(siteDto);
         }
     }
 }

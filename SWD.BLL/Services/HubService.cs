@@ -47,5 +47,10 @@ namespace SWD.BLL.Services
             await _hubRepo.DeleteHubAsync(hubId);
             await _hubRepo.SaveChangesAsync();
         }
+
+        public async Task<Hub?> GetHubWithReadingsAsync(int hubId, DateTime? from, DateTime? to)
+        {
+             return await _hubRepo.GetHubWithReadingsAsync(hubId, from, to);
+        }
     }
 }

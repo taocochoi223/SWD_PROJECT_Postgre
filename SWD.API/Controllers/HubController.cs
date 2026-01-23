@@ -141,5 +141,38 @@ namespace SWD.API.Controllers
                 message = "Hub deleted successfully", hubId = id 
             });
         }
+
+        /// <summary>
+        /// Get Hub Readings - Get all readings for a hub
+        /// </summary>
+        [HttpGet("{id}/readings")]
+        public async Task<IActionResult> GetHubReadingsAsync(int id, [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null)
+        {
+            var hub = await _hubService.GetHubWithReadingsAsync(id, from, to);
+
+            if (hub == null)
+                return NotFound(new { message = "Hub not found" });
+
+            var result = new HubReadingsDto
+            {
+                HubId = hub.HubId,
+                Name = hub.Name,
+                MacAddress = hub.MacAddress,
+                Sensors = hub.Sensors?.Select(s => new SensorReadingDto
+                {
+                    SensorId = s.SensorId,
+                    Name = s.Name,
+                    TypeName = s.Type?.TypeName ?? "Unknown",
+                    Unit = s.Type?.Unit ?? "",
+                    Readings = s.Readings?.Select(r => new ReadingValueDto
+                    {
+                        RecordedAt = r.RecordedAt ?? DateTime.MinValue,
+                        Value = (float)r.Value
+                    }).OrderByDescending(r => r.RecordedAt).ToList() ?? new List<ReadingValueDto>()
+                }).ToList() ?? new List<SensorReadingDto>()
+            };
+
+            return Ok(result);
+        }
     }
 }

@@ -14,5 +14,6 @@ namespace SWD.BLL.Interfaces
         Task CreateHubAsync(Hub hub);
         Task UpdateHubAsync(Hub hub);
         Task DeleteHubAsync(int hubId);
+        Task<Hub?> GetHubWithReadingsAsync(int hubId, DateTime? from, DateTime? to);
     }
 }

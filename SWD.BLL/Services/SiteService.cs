@@ -40,5 +40,15 @@ namespace SWD.BLL.Services
             await _siteRepo.DeleteSiteAsync(siteId);
             await _siteRepo.SaveChangesAsync();
         }
+
+        public async Task<List<Site>> GetSiteHierarchyAsync()
+        {
+            return await _siteRepo.GetSiteHierarchyAsync();
+        }
+
+        public async Task<Site?> GetSiteHierarchyByIdAsync(int siteId)
+        {
+            return await _siteRepo.GetSiteHierarchyByIdAsync(siteId);
+        }
     }
 }

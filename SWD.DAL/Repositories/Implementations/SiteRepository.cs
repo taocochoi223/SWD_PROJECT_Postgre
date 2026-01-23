@@ -53,6 +53,32 @@ namespace SWD.DAL.Repositories.Implementations
             }
         }
 
+        public async Task<List<Site>> GetSiteHierarchyAsync()
+        {
+            return await _context.Sites
+                .Include(s => s.Hubs)
+                    .ThenInclude(h => h.Sensors)
+                        .ThenInclude(se => se.Readings)
+                 .Include(s => s.Hubs)
+                    .ThenInclude(h => h.Sensors)
+                        .ThenInclude(se => se.Type)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<Site?> GetSiteHierarchyByIdAsync(int siteId)
+        {
+            return await _context.Sites
+                .Include(s => s.Hubs)
+                    .ThenInclude(h => h.Sensors)
+                        .ThenInclude(se => se.Readings)
+                 .Include(s => s.Hubs)
+                    .ThenInclude(h => h.Sensors)
+                        .ThenInclude(se => se.Type)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SiteId == siteId);
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();

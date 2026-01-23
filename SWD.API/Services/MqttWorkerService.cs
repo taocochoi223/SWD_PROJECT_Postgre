@@ -91,8 +91,8 @@ namespace SWD.API.Services
 
         private async Task MqttClient_ApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
         {
-            // Fix for v5: Use Payload (byte[]) instead of PayloadSegment
-            string payload = Encoding.UTF8.GetString(e.ApplicationMessage.Payload); 
+            // Fix for v5: Use PayloadSegment instead of Payload
+            string payload = Encoding.UTF8.GetString(e.ApplicationMessage.PayloadSegment.ToArray()); 
             _logger.LogInformation($"Received Message: {payload}");
 
             using (var scope = _scopeFactory.CreateScope())

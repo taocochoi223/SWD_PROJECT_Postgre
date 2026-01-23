@@ -72,6 +72,29 @@ namespace SWD.DAL.Repositories.Implementations
             await _context.SaveChangesAsync();
         }
 
+        public async Task<Hub?> GetHubWithReadingsAsync(int hubId, DateTime? from, DateTime? to)
+        {
+            var query = _context.Hubs
+                .Include(h => h.Sensors)
+                .ThenInclude(s => s.Type)
+                .AsQueryable();
+
+            if (from.HasValue && to.HasValue)
+            {
+                 query = query.Include(h => h.Sensors)
+                              .ThenInclude(s => s.Readings.Where(r => r.RecordedAt >= from && r.RecordedAt <= to));
+            }
+            else
+            {
+                 // Limit to last 100 if no date range to prevent explosion, or just include all
+                 // For now, let's include all but maybe user should provide range
+                 query = query.Include(h => h.Sensors)
+                              .ThenInclude(s => s.Readings);
+            }
+
+            return await query.FirstOrDefaultAsync(h => h.HubId == hubId);
+        }
+
 
 
     }

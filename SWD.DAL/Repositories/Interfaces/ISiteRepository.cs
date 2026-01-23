@@ -12,6 +12,8 @@ namespace SWD.DAL.Repositories.Interfaces
         Task AddSiteAsync(Site site);
         Task UpdateSiteAsync(Site site);
         Task DeleteSiteAsync(int siteId);
+        Task<List<Site>> GetSiteHierarchyAsync();
+        Task<Site?> GetSiteHierarchyByIdAsync(int siteId);
         Task SaveChangesAsync();
     }
 }

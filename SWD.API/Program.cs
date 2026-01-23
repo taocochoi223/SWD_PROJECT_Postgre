@@ -61,6 +61,7 @@ builder.Services.AddScoped<ILogRepository, LogRepository>();
 // Infrastructure Repositories (Separated)
 builder.Services.AddScoped<ISiteRepository, SiteRepository>();
 builder.Services.AddScoped<IHubRepository, HubRepository>();
+builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // 3. Đăng ký Services (BLL)
@@ -72,6 +73,7 @@ builder.Services.AddScoped<ISystemLogService, SystemLogService>();
 // Infrastructure Services (Separated)
 builder.Services.AddScoped<ISiteService, SiteService>();
 builder.Services.AddScoped<IHubService, HubService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();

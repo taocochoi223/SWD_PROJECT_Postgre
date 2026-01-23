@@ -12,5 +12,7 @@ namespace SWD.BLL.Interfaces
         Task CreateSiteAsync(Site site);
         Task UpdateSiteAsync(Site site);
         Task DeleteSiteAsync(int siteId);
+        Task<List<Site>> GetSiteHierarchyAsync();
+        Task<Site?> GetSiteHierarchyByIdAsync(int siteId);
     }
 }

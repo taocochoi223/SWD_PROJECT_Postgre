@@ -14,6 +14,7 @@ namespace SWD.DAL.Repositories.Interfaces
         Task AddHubAsync(Hub hub);
         Task DeleteHubAsync(int hubId);
         Task UpdateHubAsync(Hub hub);
+        Task<Hub?> GetHubWithReadingsAsync(int hubId, DateTime? from, DateTime? to);
         Task SaveChangesAsync();
 
     }
