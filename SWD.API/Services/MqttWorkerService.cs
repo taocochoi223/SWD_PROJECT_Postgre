@@ -15,20 +15,21 @@ namespace SWD.API.Services
     {
         private readonly ILogger<MqttWorkerService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IConfiguration _configuration;
         private IMqttClient _mqttClient = null!;
         private MqttClientOptions _mqttOptions = null!;
 
-        // Configurations 
-        private const string Broker = "mqtt1.eoh.io";
-        private const int Port = 1883;
-        private const string GatewayToken = "fe6fa4a8-2c25-4e37-83f1-51c4990eb55e";
-        private const string DeviceId = "18100709";
-        private readonly string Topic = $"eoh/chip/{GatewayToken}/third_party/{DeviceId}/data";
+        // Configurations from appsettings.json
+        private string Broker => _configuration["MqttSettings:Broker"] ?? "mqtt1.eoh.io";
+        private int Port => int.Parse(_configuration["MqttSettings:Port"] ?? "1883");
+        private string GatewayToken => _configuration["MqttSettings:GatewayToken"] ?? "";
+        private string TopicTemplate => _configuration["MqttSettings:TopicTemplate"] ?? "eoh/chip/{0}/third_party/+/data";
 
-        public MqttWorkerService(ILogger<MqttWorkerService> logger, IServiceScopeFactory scopeFactory)
+        public MqttWorkerService(ILogger<MqttWorkerService> logger, IServiceScopeFactory scopeFactory, IConfiguration configuration)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
+            _configuration = configuration;
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
@@ -71,11 +72,14 @@ namespace SWD.API.Services
         private async Task MqttClient_ConnectedAsync(MqttClientConnectedEventArgs arg)
         {
             _logger.LogInformation("Connected to MQTT Broker.");
+            string subscribeTopic = string.Format(TopicTemplate, GatewayToken);
+            
             var subscribeOptions = new MqttClientSubscribeOptionsBuilder()
-                .WithTopicFilter(f => f.WithTopic(Topic))
+                .WithTopicFilter(f => f.WithTopic(subscribeTopic))
                 .Build();
+            
             await _mqttClient.SubscribeAsync(subscribeOptions);
-            _logger.LogInformation($"Subscribed to topic: {Topic}");
+            _logger.LogInformation($"Subscribed to wildcard topic: {subscribeTopic}");
         }
 
         private Task MqttClient_DisconnectedAsync(MqttClientDisconnectedEventArgs arg)
@@ -91,9 +95,15 @@ namespace SWD.API.Services
 
         private async Task MqttClient_ApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
         {
-            // Fix for v5: Use PayloadSegment instead of Payload
-            string payload = Encoding.UTF8.GetString(e.ApplicationMessage.PayloadSegment.ToArray()); 
-            _logger.LogInformation($"Received Message: {payload}");
+            string topic = e.ApplicationMessage.Topic;
+            string payload = Encoding.UTF8.GetString(e.ApplicationMessage.PayloadSegment.ToArray());
+            _logger.LogInformation($"Received Message on {topic}: {payload}");
+
+            // Extract Chip ID from topic: eoh/chip/{GatewayToken}/third_party/{CHIP_ID}/data
+            // The Chip ID is the second to last segment
+            string[] topicSegments = topic.Split('/');
+            if (topicSegments.Length < 2) return;
+            string chipId = topicSegments[topicSegments.Length - 2]; 
 
             using (var scope = _scopeFactory.CreateScope())
             {
@@ -106,17 +116,16 @@ namespace SWD.API.Services
                     var data = JsonSerializer.Deserialize<EohWebhookDto>(payload);
                     if (data == null) return;
 
-                    await systemLogService.LogOptionAsync("MQTT-Listener", payload);
+                    await systemLogService.LogOptionAsync("MQTT-Listener", $"Topic: {topic} | Payload: {payload}");
 
-                    string targetMac = "AA:BB:CC:11:22"; 
-                    var hub = await hubService.GetHubByMacAsync(targetMac);
+                    // Look up Hub by MacAddress (which we use to store Chip ID)
+                    var hub = await hubService.GetHubByMacAsync(chipId);
 
                     if (hub != null)
                     {
                         hub.IsOnline = true;
                         hub.LastHandshake = DateTime.Now;
 
-                        // Update Site Address if v5 or v6 is present
                         if (!string.IsNullOrEmpty(data.v5) || !string.IsNullOrEmpty(data.v6))
                         {
                             if (hub.Site != null)
@@ -139,13 +148,12 @@ namespace SWD.API.Services
                     }
                     else
                     {
-                         _logger.LogWarning($"Hub with Mac {targetMac} not found in DB.");
+                         _logger.LogWarning($"Hub with Mac (Chip ID) {chipId} not found in DB.");
                     }
-
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing MQTT message");
+                    _logger.LogError(ex, $"Error processing MQTT message from {chipId}");
                     await systemLogService.LogOptionAsync("MQTT-Listener", payload, ex.Message);
                 }
             }

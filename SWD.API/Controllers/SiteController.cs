@@ -65,10 +65,10 @@ namespace SWD.API.Controllers
 
             await _siteService.CreateSiteAsync(site);
 
-            return CreatedAtAction(
-                nameof(GetSiteByIdAsync),
-                new { id = site.SiteId },
-                new SiteDto
+            return Ok(new
+            {
+                Message = "Site created successfully",
+                Data = new SiteDto
                 {
                     SiteId = site.SiteId,
                     OrgId = site.OrgId,
@@ -77,7 +77,7 @@ namespace SWD.API.Controllers
                     GeoLocation = site.GeoLocation,
                     HubCount = 0
                 }
-            );
+            });
         }
 
         /// <summary>
