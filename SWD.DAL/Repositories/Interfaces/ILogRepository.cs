@@ -1,15 +1,21 @@
 ﻿using SWD.DAL.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SWD.DAL.Repositories.Interfaces
 {
+    /// <summary>
+    /// Repository quản lý System Log (ghi nhận & truy vấn log)
+    /// </summary>
     public interface ILogRepository
     {
-        // Hàm này nhận vào một đối tượng SystemLog và lưu xuống DB
+        // ================= LOGGING =================
         Task AddLogAsync(SystemLog log);
+
+        /// <summary>
+        /// Lấy danh sách log gần nhất (phục vụ debug / audit)
+        /// </summary>
+        Task<List<SystemLog>> GetRecentLogsAsync(int count);
+
+        // ================= COMMON =================
+        Task SaveChangesAsync();
     }
 }

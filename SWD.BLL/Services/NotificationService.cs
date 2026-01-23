@@ -26,10 +26,11 @@ namespace SWD.BLL.Services
                 HistoryId = historyId,
                 Message = message,
                 IsRead = false,
-                //CreatedAt = DateTime.Now
+                SentAt = DateTime.Now
             };
 
             await _repo.AddNotificationAsync(noti);
+            await _repo.SaveChangesAsync();
         }
 
         public async Task<List<Notification>> GetUserNotificationsAsync(int userId)
@@ -37,7 +38,7 @@ namespace SWD.BLL.Services
             return await _repo.GetNotificationsByUserIdAsync(userId);
         }
 
-        public async Task MarkAsReadAsync(int notificationId)
+        public async Task MarkAsReadAsync(long notificationId)
         {
             await _repo.MarkAsReadAsync(notificationId);
         }

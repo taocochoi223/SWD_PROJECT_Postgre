@@ -17,11 +17,15 @@ public partial class User
 
     public string PasswordHash { get; set; } = null!;
 
-    public string Role { get; set; } = null!;
+    public int RoleId { get; set; }
+
+    public bool? IsActive { get; set; }
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public virtual Organization Org { get; set; } = null!;
+
+    public virtual Role Role { get; set; } = null!;
 
     public virtual Site? Site { get; set; }
 }

@@ -2,10 +2,12 @@
 using SWD.DAL.Models;
 using SWD.DAL.Repositories.Interfaces;
 
-//ALOALO chú ý nè mấy con gà: code này dùng EF Core để thao tác với DB, bao gồm các phương thức lấy, thêm, cập nhật dữ liệu liên quan đến Sensor, Reading, AlertRule, AlertHistory.
-//Cái này chịu trách nhiệm 80% công việc của đồ án: Nhận dữ liệu, Lưu lịch sử, Lấy dữ liệu vẽ biểu đồ, Lấy luật cảnh báo.
 namespace SWD.DAL.Repositories.Implementations
 {
+    /// <summary>
+    /// Repository quản lý Sensor, Reading, AlertRule và AlertHistory
+    /// (Core 80% workload của hệ thống IoT)
+    /// </summary>
     public class SensorRepository : ISensorRepository
     {
         private readonly IoTFinalDbContext _context;
@@ -15,18 +17,47 @@ namespace SWD.DAL.Repositories.Implementations
             _context = context;
         }
 
-        // --- 1. XỬ LÝ DỮ LIỆU ---
         public async Task<Sensor?> GetSensorByIdAsync(int sensorId)
         {
-            // Lấy Sensor kèm luôn Hub để check trạng thái Online/Offline
-            return await _context.Sensors.Include(s => s.Hub).FirstOrDefaultAsync(s => s.SensorId == sensorId);
+            return await _context.Sensors
+                .Include(s => s.Hub)
+                .FirstOrDefaultAsync(s => s.SensorId == sensorId);
+        }
+        public async Task<List<Sensor>> GetSensorsByHubIdAsync(int hubId)
+        {
+            return await _context.Sensors
+                .Include(h => h.Hub)
+                .Include(t => t.Type)
+                .Where(s => s.HubId == hubId)
+                .ToListAsync();
         }
 
-        public async Task UpdateSensorAsync(Sensor sensor)
+        public async Task<List<Sensor>> GetSensorsByTypeIdAsync(int typeId)
+        {
+            return await _context.Sensors
+                .Include(s => s.Hub)
+                .Include(s => s.Type)
+                .Where(s => s.TypeId == typeId)
+                .ToListAsync();
+        }
+        public Task UpdateSensorAsync(Sensor sensor)
         {
             _context.Sensors.Update(sensor);
-            // Chưa save ngay để tối ưu transaction bên Service
-            await Task.CompletedTask;
+            return Task.CompletedTask;
+        }
+
+        public async Task AddSensorAsync(Sensor sensor)
+        {
+            await _context.Sensors.AddAsync(sensor);
+        }
+
+        public async Task<List<Sensor>> GetAllSensorsWithDetailsAsync()
+        {
+            return await _context.Sensors
+                .Include(s => s.Hub)
+                .Include(s => s.Type)
+                .OrderBy(s => s.HubId)
+                .ToListAsync();
         }
 
         public async Task AddReadingAsync(Reading reading)
@@ -34,52 +65,28 @@ namespace SWD.DAL.Repositories.Implementations
             await _context.Readings.AddAsync(reading);
         }
 
-        // --- 2. CẢNH BÁO ---
-        public async Task<List<AlertRule>> GetActiveRulesBySensorIdAsync(int sensorId)
+        public async Task<List<Reading>> GetReadingsForChartAsync(
+            int sensorId,
+            DateTime from,
+            DateTime to)
         {
-            // Chỉ lấy những luật đang Active (IsActive = true)
-            return await _context.AlertRules
-                .Where(r => r.SensorId == sensorId && r.IsActive == true)
-                .ToListAsync();
-        }
-
-        public async Task AddAlertHistoryAsync(AlertHistory history)
-        {
-            await _context.AlertHistories.AddAsync(history);
-        }
-
-        // --- 3. DASHBOARD & CHART ---
-        public async Task<List<Sensor>> GetAllSensorsWithDetailsAsync()
-        {
-            // Include hết thông tin liên quan để hiển thị đầy đủ
-            return await _context.Sensors
-                .Include(s => s.Hub)
-                .Include(s => s.Type)
-                .OrderBy(s => s.HubId) // Sắp xếp theo Hub cho đẹp
-                .ToListAsync();
-        }
-
-        public async Task<List<Reading>> GetReadingsForChartAsync(int sensorId, DateTime from, DateTime to)
-        {
-            // Lấy dữ liệu trong khoảng thời gian user chọn
             return await _context.Readings
-                .Where(r => r.SensorId == sensorId && r.RecordedAt >= from && r.RecordedAt <= to)
-                .OrderBy(r => r.RecordedAt) // Sắp xếp theo thời gian để vẽ đường cho đúng
+                .AsNoTracking()
+                .Include(r => r.Sensor)
+                    .ThenInclude(s => s.Type)
+                .Where(r => r.SensorId == sensorId &&
+                            r.RecordedAt.HasValue &&
+                            r.RecordedAt.Value >= from &&
+                            r.RecordedAt.Value <= to)
+                .OrderBy(r => r.RecordedAt)
                 .ToListAsync();
         }
-
-        // --- 4. CONFIG RULE ---
-        public async Task CreateRuleAsync(AlertRule rule)
+        
+        public async Task<List<SensorType>> GetAllSensorTypesAsync()
         {
-            await _context.AlertRules.AddAsync(rule);
+            return await _context.SensorTypes.ToListAsync();
         }
 
-        public async Task<List<AlertRule>> GetAllRulesAsync()
-        {
-            return await _context.AlertRules.Include(r => r.Sensor).ToListAsync();
-        }
-
-        // --- 5. CHỐT ĐƠN (SAVE) ---
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();

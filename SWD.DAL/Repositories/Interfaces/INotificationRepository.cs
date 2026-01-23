@@ -18,5 +18,8 @@ namespace SWD.DAL.Repositories.Interfaces
 
         // 4. Tìm danh sách User cần nhận thông báo (VD: Lỗi ở Site A thì chỉ gửi cho Staff Site A)
         Task<List<User>> GetUsersBySiteIdAsync(int siteId);
+
+        // ================= COMMON =================
+        Task SaveChangesAsync();
     }
 }

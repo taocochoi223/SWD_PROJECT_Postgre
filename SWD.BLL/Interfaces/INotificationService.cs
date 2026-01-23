@@ -11,7 +11,7 @@ namespace SWD.BLL.Interfaces
     {
         Task CreateNotificationAsync(int userId, int historyId, string message);
         Task<List<Notification>> GetUserNotificationsAsync(int userId);
-        Task MarkAsReadAsync(int notificationId);
+        Task MarkAsReadAsync(long notificationId);
     }
 
 }

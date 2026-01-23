@@ -1,13 +1,12 @@
-﻿using SWD.DAL.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using SWD.DAL.Models;
 using SWD.DAL.Repositories.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SWD.DAL.Repositories.Implementations
 {
+    /// <summary>
+    /// Repository quản lý System Log
+    /// </summary>
     public class LogRepository : ILogRepository
     {
         private readonly IoTFinalDbContext _context;
@@ -17,9 +16,24 @@ namespace SWD.DAL.Repositories.Implementations
             _context = context;
         }
 
+        // ================= LOG WRITE =================
         public async Task AddLogAsync(SystemLog log)
         {
             await _context.SystemLogs.AddAsync(log);
+        }
+
+        // ================= LOG READ =================
+        public async Task<List<SystemLog>> GetRecentLogsAsync(int count)
+        {
+            return await _context.SystemLogs
+                .OrderByDescending(l => l.CreatedAt)
+                .Take(count)
+                .ToListAsync();
+        }
+
+        // ================= COMMON =================
+        public async Task SaveChangesAsync()
+        {
             await _context.SaveChangesAsync();
         }
     }

@@ -28,6 +28,8 @@ public partial class IoTFinalDbContext : DbContext
 
     public virtual DbSet<Reading> Readings { get; set; }
 
+    public virtual DbSet<Role> Roles { get; set; }
+
     public virtual DbSet<Sensor> Sensors { get; set; }
 
     public virtual DbSet<SensorType> SensorTypes { get; set; }
@@ -53,11 +55,12 @@ public partial class IoTFinalDbContext : DbContext
 
         return strConn;
     }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AlertHistory>(entity =>
         {
-            entity.HasKey(e => e.HistoryId).HasName("PK__AlertHis__4D7B4ADD243B1FC5");
+            entity.HasKey(e => e.HistoryId).HasName("PK__AlertHis__4D7B4ADD112F38EB");
 
             entity.ToTable("AlertHistory");
 
@@ -74,17 +77,17 @@ public partial class IoTFinalDbContext : DbContext
             entity.HasOne(d => d.Rule).WithMany(p => p.AlertHistories)
                 .HasForeignKey(d => d.RuleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__AlertHist__RuleI__5629CD9C");
+                .HasConstraintName("FK__AlertHist__RuleI__5AEE82B9");
 
             entity.HasOne(d => d.Sensor).WithMany(p => p.AlertHistories)
                 .HasForeignKey(d => d.SensorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__AlertHist__Senso__571DF1D5");
+                .HasConstraintName("FK__AlertHist__Senso__5BE2A6F2");
         });
 
         modelBuilder.Entity<AlertRule>(entity =>
         {
-            entity.HasKey(e => e.RuleId).HasName("PK__AlertRul__110458C2EFBD3FE0");
+            entity.HasKey(e => e.RuleId).HasName("PK__AlertRul__110458C20C3B9D6E");
 
             entity.ToTable("AlertRule");
 
@@ -103,16 +106,16 @@ public partial class IoTFinalDbContext : DbContext
             entity.HasOne(d => d.Sensor).WithMany(p => p.AlertRules)
                 .HasForeignKey(d => d.SensorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__AlertRule__Senso__52593CB8");
+                .HasConstraintName("FK__AlertRule__Senso__571DF1D5");
         });
 
         modelBuilder.Entity<Hub>(entity =>
         {
-            entity.HasKey(e => e.HubId).HasName("PK__Hub__9F4FFECFF6333DA6");
+            entity.HasKey(e => e.HubId).HasName("PK__Hub__9F4FFECFC0EB50EB");
 
             entity.ToTable("Hub");
 
-            entity.HasIndex(e => e.MacAddress, "UQ__Hub__50EDF1CD2F61631A").IsUnique();
+            entity.HasIndex(e => e.MacAddress, "UQ__Hub__50EDF1CDFDF0BE28").IsUnique();
 
             entity.Property(e => e.HubId).HasColumnName("HubID");
             entity.Property(e => e.IsOnline).HasDefaultValue(false);
@@ -131,7 +134,7 @@ public partial class IoTFinalDbContext : DbContext
 
         modelBuilder.Entity<Notification>(entity =>
         {
-            entity.HasKey(e => e.NotiId).HasName("PK__Notifica__EDC08EF2F74D59EA");
+            entity.HasKey(e => e.NotiId).HasName("PK__Notifica__EDC08EF20E2D3E48");
 
             entity.ToTable("Notification");
 
@@ -147,17 +150,17 @@ public partial class IoTFinalDbContext : DbContext
             entity.HasOne(d => d.History).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.HistoryId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Notificat__Histo__5BE2A6F2");
+                .HasConstraintName("FK__Notificat__Histo__60A75C0F");
 
             entity.HasOne(d => d.User).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Notificat__UserI__5CD6CB2B");
+                .HasConstraintName("FK__Notificat__UserI__619B8048");
         });
 
         modelBuilder.Entity<Organization>(entity =>
         {
-            entity.HasKey(e => e.OrgId).HasName("PK__Organiza__420C9E0C494E5D0B");
+            entity.HasKey(e => e.OrgId).HasName("PK__Organiza__420C9E0C845179E3");
 
             entity.ToTable("Organization");
 
@@ -171,7 +174,7 @@ public partial class IoTFinalDbContext : DbContext
 
         modelBuilder.Entity<Reading>(entity =>
         {
-            entity.HasKey(e => e.ReadingId).HasName("PK__Reading__C80F9C6E8FC9BDAD");
+            entity.HasKey(e => e.ReadingId).HasName("PK__Reading__C80F9C6E561FFF59");
 
             entity.ToTable("Reading");
 
@@ -179,8 +182,8 @@ public partial class IoTFinalDbContext : DbContext
 
             entity.Property(e => e.ReadingId).HasColumnName("ReadingID");
             entity.Property(e => e.RecordedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+                .HasPrecision(3)
+                .HasDefaultValueSql("(getdate())");
             entity.Property(e => e.SensorId).HasColumnName("SensorID");
 
             entity.HasOne(d => d.Sensor).WithMany(p => p.Readings)
@@ -189,15 +192,28 @@ public partial class IoTFinalDbContext : DbContext
                 .HasConstraintName("FK__Reading__SensorI__49C3F6B7");
         });
 
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.HasKey(e => e.RoleId).HasName("PK__Role__8AFACE3A10B7CB9B");
+
+            entity.ToTable("Role");
+
+            entity.HasIndex(e => e.RoleName, "UQ__Role__8A2B6160395B11F5").IsUnique();
+
+            entity.Property(e => e.RoleId).HasColumnName("RoleID");
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.RoleName).HasMaxLength(50);
+        });
+
         modelBuilder.Entity<Sensor>(entity =>
         {
-            entity.HasKey(e => e.SensorId).HasName("PK__Sensor__D809841A5DB028D7");
+            entity.HasKey(e => e.SensorId).HasName("PK__Sensor__D809841AFEF09FD0");
 
             entity.ToTable("Sensor");
 
             entity.Property(e => e.SensorId).HasColumnName("SensorID");
             entity.Property(e => e.HubId).HasColumnName("HubID");
-            entity.Property(e => e.LastUpdate).HasColumnType("datetime");
+            entity.Property(e => e.LastUpdate).HasPrecision(3);
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
@@ -217,7 +233,7 @@ public partial class IoTFinalDbContext : DbContext
 
         modelBuilder.Entity<SensorType>(entity =>
         {
-            entity.HasKey(e => e.TypeId).HasName("PK__SensorTy__516F0395CF4FD44F");
+            entity.HasKey(e => e.TypeId).HasName("PK__SensorTy__516F0395C1AE3D64");
 
             entity.ToTable("SensorType");
 
@@ -229,7 +245,7 @@ public partial class IoTFinalDbContext : DbContext
 
         modelBuilder.Entity<Site>(entity =>
         {
-            entity.HasKey(e => e.SiteId).HasName("PK__Site__B9DCB90384C22174");
+            entity.HasKey(e => e.SiteId).HasName("PK__Site__B9DCB9032CBAC039");
 
             entity.ToTable("Site");
 
@@ -247,7 +263,7 @@ public partial class IoTFinalDbContext : DbContext
 
         modelBuilder.Entity<SystemLog>(entity =>
         {
-            entity.HasKey(e => e.LogId).HasName("PK__SystemLo__5E5499A8B1C6F65B");
+            entity.HasKey(e => e.LogId).HasName("PK__SystemLo__5E5499A8547BC738");
 
             entity.ToTable("SystemLog");
 
@@ -262,32 +278,37 @@ public partial class IoTFinalDbContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__User__1788CCACA35AC5FB");
+            entity.HasKey(e => e.UserId).HasName("PK__User__1788CCACE687B793");
 
             entity.ToTable("User");
 
-            entity.HasIndex(e => e.Email, "UQ__User__A9D10534E0965327").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__User__A9D105342B2B253F").IsUnique();
 
             entity.Property(e => e.UserId).HasColumnName("UserID");
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.FullName).HasMaxLength(100);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.OrgId).HasColumnName("OrgID");
             entity.Property(e => e.PasswordHash)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.Role).HasMaxLength(50);
             entity.Property(e => e.SiteId).HasColumnName("SiteID");
 
             entity.HasOne(d => d.Org).WithMany(p => p.Users)
                 .HasForeignKey(d => d.OrgId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__User__OrgID__4D94879B");
+                .HasConstraintName("FK__User__OrgID__5165187F");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.Users)
+                .HasForeignKey(d => d.RoleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__User__RoleId__534D60F1");
 
             entity.HasOne(d => d.Site).WithMany(p => p.Users)
                 .HasForeignKey(d => d.SiteId)
-                .HasConstraintName("FK__User__SiteID__4E88ABD4");
+                .HasConstraintName("FK__User__SiteID__52593CB8");
         });
 
         OnModelCreatingPartial(modelBuilder);

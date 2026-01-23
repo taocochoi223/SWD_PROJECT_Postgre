@@ -19,7 +19,6 @@ namespace SWD.DAL.Repositories.Implementations
         public async Task AddNotificationAsync(Notification notification)
         {
             await _context.Notifications.AddAsync(notification);
-            await _context.SaveChangesAsync();
         }
 
         public async Task<List<Notification>> GetNotificationsByUserIdAsync(int userId)
@@ -50,6 +49,12 @@ namespace SWD.DAL.Repositories.Implementations
             return await _context.Users
                 .Where(u => u.SiteId == siteId || u.SiteId == null)
                 .ToListAsync();
+        }
+
+        // ================= COMMON =================
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
         }
     }
 }
