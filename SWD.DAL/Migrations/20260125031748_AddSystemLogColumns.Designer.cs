@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SWD.DAL.Models;
@@ -11,9 +12,11 @@ using SWD.DAL.Models;
 namespace SWD.DAL.Migrations
 {
     [DbContext(typeof(IoTFinalDbContext))]
-    partial class IoTFinalDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260125031748_AddSystemLogColumns")]
+    partial class AddSystemLogColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,7 +39,7 @@ namespace SWD.DAL.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<int>("RuleId")
                         .HasColumnType("integer")
@@ -52,7 +55,7 @@ namespace SWD.DAL.Migrations
 
                     b.Property<DateTime?>("TriggeredAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp")
                         .HasDefaultValueSql("NOW()");
 
                     b.Property<double?>("ValueAtTrigger")
@@ -132,7 +135,7 @@ namespace SWD.DAL.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<DateTime?>("LastHandshake")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<string>("MacAddress")
                         .IsRequired()
@@ -182,7 +185,7 @@ namespace SWD.DAL.Migrations
 
                     b.Property<DateTime?>("SentAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp")
                         .HasDefaultValueSql("NOW()");
 
                     b.Property<int>("UserId")
@@ -209,7 +212,7 @@ namespace SWD.DAL.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp")
                         .HasDefaultValueSql("NOW()");
 
                     b.Property<string>("Description")
@@ -396,7 +399,7 @@ namespace SWD.DAL.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp")
                         .HasDefaultValueSql("NOW()");
 
                     b.Property<string>("ErrorMessage")

@@ -69,13 +69,13 @@ public partial class IoTFinalDbContext : DbContext
 
             entity.Property(e => e.HistoryId).HasColumnName("HistoryID");
             entity.Property(e => e.Message).HasMaxLength(255);
-            entity.Property(e => e.ResolvedAt).HasColumnType("timestamp");
+            entity.Property(e => e.ResolvedAt).HasColumnType("timestamp with time zone");
             entity.Property(e => e.RuleId).HasColumnName("RuleID");
             entity.Property(e => e.SensorId).HasColumnName("SensorID");
             entity.Property(e => e.Severity).HasMaxLength(20);
             entity.Property(e => e.TriggeredAt)
                 .HasDefaultValueSql("NOW()")
-                .HasColumnType("timestamp");
+                .HasColumnType("timestamp with time zone");
 
             entity.HasOne(d => d.Rule).WithMany(p => p.AlertHistories)
                 .HasForeignKey(d => d.RuleId)
@@ -119,7 +119,7 @@ public partial class IoTFinalDbContext : DbContext
 
             entity.Property(e => e.HubId).HasColumnName("HubID");
             entity.Property(e => e.IsOnline).HasDefaultValue(false);
-            entity.Property(e => e.LastHandshake).HasColumnType("timestamp");
+            entity.Property(e => e.LastHandshake).HasColumnType("timestamp with time zone");
             entity.Property(e => e.MacAddress)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -143,7 +143,7 @@ public partial class IoTFinalDbContext : DbContext
             entity.Property(e => e.Message).HasMaxLength(500);
             entity.Property(e => e.SentAt)
                 .HasDefaultValueSql("NOW()")
-                .HasColumnType("timestamp");
+                .HasColumnType("timestamp with time zone");
             entity.Property(e => e.UserId).HasColumnName("UserID");
 
             entity.HasOne(d => d.History).WithMany(p => p.Notifications)
@@ -164,7 +164,7 @@ public partial class IoTFinalDbContext : DbContext
             entity.Property(e => e.OrgId).HasColumnName("OrgID");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("NOW()")
-                .HasColumnType("timestamp");
+                .HasColumnType("timestamp with time zone");
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.Name).HasMaxLength(100);
         });
@@ -263,10 +263,14 @@ public partial class IoTFinalDbContext : DbContext
             entity.Property(e => e.LogId).HasColumnName("LogID");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("NOW()")
-                .HasColumnType("timestamp");
+                .HasColumnType("timestamp with time zone");
             entity.Property(e => e.Source)
                 .HasMaxLength(50)
                 .HasDefaultValue("EOH-Webhook");
+            entity.Property(e => e.RawPayload)
+                .HasColumnType("text");
+            entity.Property(e => e.ErrorMessage)
+                .HasColumnType("text");
         });
 
         modelBuilder.Entity<User>(entity =>
