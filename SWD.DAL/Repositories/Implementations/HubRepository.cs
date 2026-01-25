@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SWD.DAL.Models;
 using SWD.DAL.Repositories.Interfaces;
 
@@ -81,18 +81,33 @@ namespace SWD.DAL.Repositories.Implementations
 
             if (from.HasValue && to.HasValue)
             {
-                 query = query.Include(h => h.Sensors)
-                              .ThenInclude(s => s.Readings.Where(r => r.RecordedAt >= from && r.RecordedAt <= to));
+                query = query.Include(h => h.Sensors)
+                             .ThenInclude(s => s.Readings.Where(r => r.RecordedAt >= from && r.RecordedAt <= to));
             }
             else
             {
-                 // Limit to last 100 if no date range to prevent explosion, or just include all
-                 // For now, let's include all but maybe user should provide range
-                 query = query.Include(h => h.Sensors)
-                              .ThenInclude(s => s.Readings);
+                // Limit to last 100 if no date range to prevent explosion, or just include all
+                // For now, let's include all but maybe user should provide range
+                query = query.Include(h => h.Sensors)
+                             .ThenInclude(s => s.Readings);
             }
 
             return await query.FirstOrDefaultAsync(h => h.HubId == hubId);
+        }
+
+        public async Task<List<Sensor>> GetHubTemperatureSensorsAsync(int hubId)
+        {
+            return await _context.Sensors
+                .Include(s => s.Type)
+                .Include(s => s.Hub)
+                .Where(s => s.HubId == hubId &&
+                       (s.Type.TypeName.Contains("Temperature") ||
+                        s.Type.TypeName.Contains("Nhiệt độ") ||
+                        s.Type.TypeName.Contains("Humidity") ||
+                        s.Type.TypeName.Contains("Độ ẩm") ||
+                        s.Type.TypeName.Contains("Pressure") ||
+                        s.Type.TypeName.Contains("Áp suất")))
+                .ToListAsync();
         }
 
 

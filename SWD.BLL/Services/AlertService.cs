@@ -58,7 +58,7 @@ namespace SWD.BLL.Services
                     {
                         RuleId = rule.RuleId,
                         SensorId = reading.SensorId,
-                        TriggeredAt = DateTime.Now,
+                        TriggeredAt = DateTime.UtcNow,
                         ValueAtTrigger = reading.Value,
                         Severity = rule.Priority,
                         Message = message

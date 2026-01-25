@@ -59,7 +59,7 @@ namespace SWD.BLL.Services
             {
                 SensorId = sensorId,
                 Value = value,
-                RecordedAt = DateTime.Now
+                RecordedAt = DateTime.UtcNow
             };
 
             await _sensorRepo.AddReadingAsync(reading);
@@ -68,7 +68,7 @@ namespace SWD.BLL.Services
             if (sensor != null)
             {
                 sensor.CurrentValue = value;
-                sensor.LastUpdate = DateTime.Now;
+                sensor.LastUpdate = DateTime.UtcNow;
                 await _sensorRepo.UpdateSensorAsync(sensor);
             }
 

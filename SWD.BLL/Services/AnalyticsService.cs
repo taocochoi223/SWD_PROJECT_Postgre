@@ -15,8 +15,8 @@ namespace SWD.BLL.Services
 
         public async Task<object> GetSummaryAsync(int sensorId, DateTime? from, DateTime? to)
         {
-            var fromDate = from?.Date ?? DateTime.Now.AddDays(-7);
-            var toDate = to?.Date.AddDays(1).AddTicks(-1) ?? DateTime.Now;
+            var fromDate = from?.Date ?? DateTime.UtcNow.AddDays(-7);
+            var toDate = to?.Date.AddDays(1).AddTicks(-1) ?? DateTime.UtcNow;
 
             var readings = await _sensorRepo.GetReadingsForChartAsync(sensorId, fromDate, toDate);
 
@@ -51,8 +51,8 @@ namespace SWD.BLL.Services
 
         public async Task<object> GetTrendsAsync(int sensorId, string interval, DateTime? from, DateTime? to)
         {
-            var fromDate = from?.Date ?? DateTime.Now.AddDays(-7);
-            var toDate = to?.Date.AddDays(1).AddTicks(-1) ?? DateTime.Now;
+            var fromDate = from?.Date ?? DateTime.UtcNow.AddDays(-7);
+            var toDate = to?.Date.AddDays(1).AddTicks(-1) ?? DateTime.UtcNow;
 
             var readings = await _sensorRepo.GetReadingsForChartAsync(sensorId, fromDate, toDate);
 
@@ -107,8 +107,8 @@ namespace SWD.BLL.Services
         public async Task<object> CompareSensorsAsync(string sensorIds, DateTime? from, DateTime? to)
         {
             var ids = sensorIds.Split(',').Select(int.Parse).ToList();
-            var fromDate = from?.Date ?? DateTime.Now.AddDays(-7);
-            var toDate = to?.Date.AddDays(1).AddTicks(-1) ?? DateTime.Now;
+            var fromDate = from?.Date ?? DateTime.UtcNow.AddDays(-7);
+            var toDate = to?.Date.AddDays(1).AddTicks(-1) ?? DateTime.UtcNow;
 
             var comparisons = new List<object>();
 
@@ -142,8 +142,8 @@ namespace SWD.BLL.Services
 
         public async Task<object> DetectAnomaliesAsync(int sensorId, DateTime? from, DateTime? to)
         {
-            var fromDate = from?.Date ?? DateTime.Now.AddDays(-7);
-            var toDate = to?.Date.AddDays(1).AddTicks(-1) ?? DateTime.Now;
+            var fromDate = from?.Date ?? DateTime.UtcNow.AddDays(-7);
+            var toDate = to?.Date.AddDays(1).AddTicks(-1) ?? DateTime.UtcNow;
 
             var readings = await _sensorRepo.GetReadingsForChartAsync(sensorId, fromDate, toDate);
 

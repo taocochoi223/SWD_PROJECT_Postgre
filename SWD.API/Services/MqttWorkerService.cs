@@ -124,7 +124,7 @@ namespace SWD.API.Services
                     if (hub != null)
                     {
                         hub.IsOnline = true;
-                        hub.LastHandshake = DateTime.Now;
+                        hub.LastHandshake = DateTime.UtcNow;
 
                         if (!string.IsNullOrEmpty(data.v5) || !string.IsNullOrEmpty(data.v6))
                         {

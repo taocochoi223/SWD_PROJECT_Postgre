@@ -26,7 +26,7 @@ namespace SWD.BLL.Services
                 HistoryId = historyId,
                 Message = message,
                 IsRead = false,
-                SentAt = DateTime.Now
+                SentAt = DateTime.UtcNow
             };
 
             await _repo.AddNotificationAsync(noti);
