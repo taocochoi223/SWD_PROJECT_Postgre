@@ -81,7 +81,7 @@ namespace SWD.DAL.Repositories.Implementations
                 .OrderBy(r => r.RecordedAt)
                 .ToListAsync();
         }
-        
+
         public async Task<List<SensorType>> GetAllSensorTypesAsync()
         {
             return await _context.SensorTypes.ToListAsync();

@@ -10,12 +10,13 @@ namespace SWD.BLL.Interfaces
     public interface ISensorService
     {
         Task<List<Sensor>> GetAllSensorsAsync();
-        Task<Sensor?> GetSensorByIdAsync(int sensorId);       
+        Task<Sensor?> GetSensorByIdAsync(int sensorId);
         Task ProcessReadingAsync(int sensorId, float value);
-        Task<List<Reading>> GetSensorReadingsAsync(int sensorId, DateTime from, DateTime to);        
+        Task<List<Reading>> GetSensorReadingsAsync(int sensorId, DateTime from, DateTime to);
         Task<List<SensorType>> GetAllSensorTypesAsync();
-        Task<List<Sensor>> GetSensorsByHubIdAsync(int hubId);    
-        Task<List<Sensor>> GetSensorsByTypeIdAsync(int typeId);  
-        Task RegisterSensorAsync(Sensor sensor);       
+        Task<List<Sensor>> GetSensorsByHubIdAsync(int hubId);
+        Task<List<Sensor>> GetSensorsByTypeIdAsync(int typeId);
+        Task RegisterSensorAsync(Sensor sensor);
+        Task UpdateSensorStatusAsync(int sensorId, string status);
     }
 }

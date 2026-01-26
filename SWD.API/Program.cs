@@ -50,7 +50,16 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // 1. Đăng ký DB Context
-builder.Services.AddDbContext<IoTFinalDbContext>();
+//builder.Services.AddDbContext<IoTFinalDbContext>();
+// 1. Đăng ký DB Context (DÙNG PostgreSQL)
+builder.Services.AddDbContext<IoTFinalDbContext>(options =>
+{
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sql => sql.EnableRetryOnFailure()
+    );
+});
+
 
 // 2. Đăng ký Repositories (DAL)
 builder.Services.AddScoped<ISensorRepository, SensorRepository>();
@@ -81,6 +90,26 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 
 // 79. Register Hosted Services
 builder.Services.AddHostedService<SWD.API.Services.MqttWorkerService>();
+builder.Services.AddHostedService<SWD.API.Services.StatusMonitorService>();
+
+// 80. Add SignalR
+builder.Services.AddSignalR();
+
+// 81. Configure CORS for SignalR
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SignalRPolicy", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "https://swd-fe-project.vercel.app"
+              )
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 // 4. Cấu hình JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -119,8 +148,15 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// Enable CORS
+app.UseCors("SignalRPolicy");
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Map SignalR Hub
+app.MapHub<SWD.API.Hubs.SensorHub>("/sensorHub");
+
 app.Run();

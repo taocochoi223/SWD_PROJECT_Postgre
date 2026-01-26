@@ -58,7 +58,7 @@ namespace SWD.BLL.Services
                     {
                         RuleId = rule.RuleId,
                         SensorId = reading.SensorId,
-                        TriggeredAt = DateTime.UtcNow,
+                        TriggeredAt = DateTime.Now,
                         ValueAtTrigger = reading.Value,
                         Severity = rule.Priority,
                         Message = message
@@ -72,11 +72,11 @@ namespace SWD.BLL.Services
                     var sensor = await _sensorRepo.GetSensorByIdAsync(reading.SensorId);
                     if (sensor != null && sensor.Hub != null)
                     {
-                         var users = await _notiRepo.GetUsersBySiteIdAsync(sensor.Hub.SiteId);
-                         foreach (var u in users)
-                         {
-                             await _notiService.CreateNotificationAsync(u.UserId, (int)history.HistoryId, message); // Warning: HistoryId is bigint? Cast check
-                         }
+                        var users = await _notiRepo.GetUsersBySiteIdAsync(sensor.Hub.SiteId);
+                        foreach (var u in users)
+                        {
+                            await _notiService.CreateNotificationAsync(u.UserId, (int)history.HistoryId, message); // Warning: HistoryId is bigint? Cast check
+                        }
                     }
                 }
             }

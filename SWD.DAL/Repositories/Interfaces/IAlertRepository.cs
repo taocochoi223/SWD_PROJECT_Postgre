@@ -9,7 +9,7 @@ namespace SWD.DAL.Repositories.Interfaces
         Task CreateRuleAsync(AlertRule rule);
         Task AddAlertHistoryAsync(AlertHistory history);
         Task<AlertHistory?> GetAlertHistoryByIdAsync(int historyId);
-        Task<List<AlertHistory>> GetAlertHistoryAsync( int? sensorId, DateTime? from, DateTime? to );
+        Task<List<AlertHistory>> GetAlertHistoryAsync(int? sensorId, DateTime? from, DateTime? to);
         Task<List<AlertHistory>> GetAlertHistoryWithFiltersAsync(string? status, string? search);
         Task UpdateAlertHistoryAsync(AlertHistory history);
         Task DeleteAlertHistoryAsync(int historyId);

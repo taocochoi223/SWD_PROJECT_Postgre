@@ -21,7 +21,7 @@ namespace SWD.BLL.Services
             {
                 return null;
             }
-            
+
             if (BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
             {
                 return user;

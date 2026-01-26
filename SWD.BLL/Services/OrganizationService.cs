@@ -32,7 +32,7 @@ namespace SWD.BLL.Services
 
         public async Task UpdateOrganizationAsync(Organization organization)
         {
-             await _repository.UpdateAsync(organization);
+            await _repository.UpdateAsync(organization);
         }
 
         public async Task DeleteOrganizationAsync(int id)
