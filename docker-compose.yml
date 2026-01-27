@@ -1,0 +1,31 @@
+services:
+  swd-api:
+    image: swd-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      # Uncomment the following line to use the local postgres database defined below
+      - ConnectionStrings__DefaultConnection=Host=swd-db;Port=5432;Database=swd_project;Username=postgres;Password=yourpassword
+    depends_on:
+      - swd-db
+    restart: always
+
+  swd-db:
+    image: postgres:15
+    container_name: swd-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=yourpassword
+      - POSTGRES_DB=swd_project
+    ports:
+      - "5432:5432"
+    volumes:
+      - swd_pgdata:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  swd_pgdata:
