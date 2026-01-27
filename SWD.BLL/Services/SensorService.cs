@@ -59,7 +59,7 @@ namespace SWD.BLL.Services
             {
                 SensorId = sensorId,
                 Value = value,
-                RecordedAt = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"))
+                RecordedAt = DateTime.UtcNow // Store UTC in database
             };
 
             await _sensorRepo.AddReadingAsync(reading);
@@ -68,7 +68,7 @@ namespace SWD.BLL.Services
             if (sensor != null)
             {
                 sensor.CurrentValue = value;
-                sensor.LastUpdate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+                sensor.LastUpdate = DateTime.UtcNow; // Store UTC in database
                 await _sensorRepo.UpdateSensorAsync(sensor);
             }
 

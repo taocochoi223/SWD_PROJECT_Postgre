@@ -128,7 +128,7 @@ namespace SWD.API.Services
                     if (hub != null)
                     {
                         hub.IsOnline = true;
-                        hub.LastHandshake = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+                        hub.LastHandshake = DateTime.UtcNow; // Store UTC in database
 
                         if (!string.IsNullOrEmpty(data.v5) || !string.IsNullOrEmpty(data.v6))
                         {

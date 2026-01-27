@@ -64,7 +64,7 @@ namespace SWD.API.Services
                 return;
             }
 
-            var offlineThreshold = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")).AddMinutes(-OfflineThresholdMinutes);
+            var offlineThreshold = DateTime.UtcNow.AddMinutes(-OfflineThresholdMinutes); // Compare UTC directly
             var hubsToMarkOffline = onlineHubs.Where(h => h.LastHandshake < offlineThreshold).ToList();
 
             if (!hubsToMarkOffline.Any())
@@ -78,8 +78,7 @@ namespace SWD.API.Services
                 try
                 {
                     // Calculate how long hub has been inactive
-                    var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
-                    var inactiveMinutes = (vietnamNow - (hub.LastHandshake ?? vietnamNow)).TotalMinutes;
+                    var inactiveMinutes = (DateTime.UtcNow - (hub.LastHandshake ?? DateTime.UtcNow)).TotalMinutes;
 
                     _logger.LogWarning($"Hub {hub.HubId} ({hub.Name}) inactive for {inactiveMinutes:F1} minutes. Marking as offline.");
 
