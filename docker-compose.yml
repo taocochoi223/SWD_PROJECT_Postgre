@@ -9,7 +9,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       # Uncomment the following line to use the local postgres database defined below
-      - ConnectionStrings__DefaultConnection=Host=swd-db;Port=5432;Database=swd_project;Username=postgres;Password=yourpassword
+      #  - ConnectionStrings__DefaultConnection=Host=swd-db;Port=5432;Database=swd_project;Username=postgres;Password=yourpassword
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     depends_on:
       - swd-db
     restart: always
@@ -22,7 +25,7 @@ services:
       - POSTGRES_PASSWORD=yourpassword
       - POSTGRES_DB=swd_project
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - swd_pgdata:/var/lib/postgresql/data
     restart: always
