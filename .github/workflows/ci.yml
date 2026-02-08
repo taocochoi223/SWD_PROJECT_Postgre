@@ -188,7 +188,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://swd-project-api.onrender.com
+      url: https://swd-project-postgre.onrender.com
     
     steps:
     - name: 🚀 Trigger Render Deployment

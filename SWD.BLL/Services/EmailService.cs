@@ -2,27 +2,33 @@
 using Microsoft.Extensions.Logging;
 using SendGrid;
 using SendGrid.Helpers.Mail;
+using Microsoft.Extensions.Configuration;
 
 namespace SWD.BLL.Services
 {
     public class EmailService : IEmailService
     {
+        private readonly IConfiguration _configuration;
         private readonly string _apiKey;
         private readonly string _fromEmail;
         private readonly string _fromName;
         private readonly ILogger<EmailService> _logger;
 
-        public EmailService(ILogger<EmailService> logger)
+        public EmailService(ILogger<EmailService> logger, IConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
 
-            _apiKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY")
+            _apiKey = _configuration["SENDGRID_API_KEY"] 
+                ?? Environment.GetEnvironmentVariable("SENDGRID_API_KEY")
                 ?? throw new Exception("SENDGRID_API_KEY missing");
 
-            _fromEmail = Environment.GetEnvironmentVariable("EMAIL_FROM")
+            _fromEmail = _configuration["EMAIL_FROM"] 
+                ?? Environment.GetEnvironmentVariable("EMAIL_FROM")
                 ?? throw new Exception("EMAIL_FROM missing");
 
-            _fromName = Environment.GetEnvironmentVariable("EMAIL_FROM_NAME")
+            _fromName = _configuration["EMAIL_FROM_NAME"] 
+                ?? Environment.GetEnvironmentVariable("EMAIL_FROM_NAME")
                 ?? "Smart Weather Data Lab";
 
             _logger.LogInformation($"EmailService initialized with SendGrid - From: {_fromEmail}, Name: {_fromName}, API Key: {(_apiKey.Length > 0 ? "***SET***" : "NOT SET")}");
