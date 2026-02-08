@@ -20,22 +20,36 @@ namespace SWD.BLL.Services
             _configuration = configuration;
 
             _apiKey = _configuration["SENDGRID_API_KEY"] 
-                ?? Environment.GetEnvironmentVariable("SENDGRID_API_KEY")
-                ?? throw new Exception("SENDGRID_API_KEY missing");
+                ?? Environment.GetEnvironmentVariable("SENDGRID_API_KEY") ?? "";
 
             _fromEmail = _configuration["EMAIL_FROM"] 
-                ?? Environment.GetEnvironmentVariable("EMAIL_FROM")
-                ?? throw new Exception("EMAIL_FROM missing");
+                ?? Environment.GetEnvironmentVariable("EMAIL_FROM") ?? "";
 
             _fromName = _configuration["EMAIL_FROM_NAME"] 
                 ?? Environment.GetEnvironmentVariable("EMAIL_FROM_NAME")
                 ?? "Smart Weather Data Lab";
 
-            _logger.LogInformation($"EmailService initialized with SendGrid - From: {_fromEmail}, Name: {_fromName}, API Key: {(_apiKey.Length > 0 ? "***SET***" : "NOT SET")}");
+            if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
+            {
+                _logger.LogWarning("EmailService initialized containing MISSING CONFIGURATION (SENDGRID_API_KEY or EMAIL_FROM). Email sending will fail.");
+            }
+            else
+            {
+                _logger.LogInformation($"EmailService initialized with SendGrid - From: {_fromEmail}, Name: {_fromName}, API Key: ***SET***");
+            }
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
+            if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
+            {
+                _logger.LogError("Cannot send email: Update SendGrid configuration (SENDGRID_API_KEY and EMAIL_FROM) in environment variables.");
+                // We can throw or just return. Since it returns Task, throwing propagates to caller.
+                // The caller (UserController) ignores the Task (fire-and-forget), but logs exceptions.
+                // It is better to throw so the logs show the error clearly.
+                throw new InvalidOperationException("EmailService is not configured properly.");
+            }
+
             _logger.LogInformation($"Preparing to send email via SendGrid to {toEmail} with subject: {subject}");
 
             var client = new SendGridClient(_apiKey);
