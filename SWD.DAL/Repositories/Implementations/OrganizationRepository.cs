@@ -18,7 +18,7 @@ namespace SWD.DAL.Repositories.Implementations
         public async Task<IEnumerable<Organization>> GetAllAsync()
         {
             return await _context.Organizations
-                .Include(o => o.Sites)
+                .Include(o => o.Sites) 
                 .ToListAsync();
         }
 

@@ -13,17 +13,19 @@ namespace SWD.DAL.Repositories.Implementations
             _context = context;
         }
 
-        public async Task<List<AlertRule>> GetAllRulesAsync()
-        {
-            return await _context.AlertRules
-                .Include(r => r.Sensor)
-                .ToListAsync();
-        }
-
         public async Task<List<AlertRule>> GetActiveRulesBySensorIdAsync(int sensorId)
         {
             return await _context.AlertRules
                 .Where(r => r.SensorId == sensorId && r.IsActive == true)
+                .ToListAsync();
+        }
+
+        public async Task<List<AlertRule>> GetAllRulesAsync()
+        {
+            return await _context.AlertRules
+                .Include(r => r.Sensor)
+                .ThenInclude(s => s.Hub)
+                .ThenInclude(h => h.Site)
                 .ToListAsync();
         }
 
@@ -32,72 +34,24 @@ namespace SWD.DAL.Repositories.Implementations
             await _context.AlertRules.AddAsync(rule);
         }
 
-        public async Task AddAlertHistoryAsync(AlertHistory history)
+        public async Task<AlertRule?> GetRuleByIdAsync(int ruleId)
         {
-            await _context.AlertHistories.AddAsync(history);
+            return await _context.AlertRules.FindAsync(ruleId);
         }
 
-        public async Task<List<AlertHistory>> GetAlertHistoryAsync(int? sensorId, DateTime? from, DateTime? to)
+        public Task UpdateRuleAsync(AlertRule rule)
         {
-            var query = _context.AlertHistories
-                .Include(h => h.Sensor)
-                .Include(h => h.Rule)
-                .AsQueryable();
-
-            if (sensorId.HasValue)
-                query = query.Where(h => h.SensorId == sensorId);
-
-            if (from.HasValue)
-                query = query.Where(h => h.TriggeredAt >= from);
-
-            if (to.HasValue)
-                query = query.Where(h => h.TriggeredAt <= to);
-
-            return await query
-                .OrderByDescending(h => h.TriggeredAt)
-                .ToListAsync();
-        }
-
-        public async Task<AlertHistory?> GetAlertHistoryByIdAsync(int historyId)
-        {
-            return await _context.AlertHistories
-                .Include(h => h.Sensor)
-                .Include(h => h.Rule)
-                .FirstOrDefaultAsync(h => h.HistoryId == historyId);
-        }
-
-        public async Task<List<AlertHistory>> GetAlertHistoryWithFiltersAsync(string? status, string? search)
-        {
-            var query = _context.AlertHistories
-                .Include(h => h.Sensor)
-                .Include(h => h.Rule)
-                .AsQueryable();
-
-            if (!string.IsNullOrEmpty(status) && status != "All")
-            {
-                if (status == "Active")
-                    query = query.Where(h => h.ResolvedAt == null);
-                else if (status == "Resolved")
-                    query = query.Where(h => h.ResolvedAt != null);
-            }
-
-            if (!string.IsNullOrEmpty(search))
-                query = query.Where(h => h.Sensor != null && h.Sensor.Name != null && h.Sensor.Name.Contains(search));
-
-            return await query.OrderByDescending(h => h.TriggeredAt).ToListAsync();
-        }
-
-        public Task UpdateAlertHistoryAsync(AlertHistory history)
-        {
-            _context.AlertHistories.Update(history);
+            _context.AlertRules.Update(rule);
             return Task.CompletedTask;
         }
 
-        public async Task DeleteAlertHistoryAsync(int historyId)
+        public async Task DeleteRuleAsync(int ruleId)
         {
-            var history = await _context.AlertHistories.FindAsync(historyId);
-            if (history != null)
-                _context.AlertHistories.Remove(history);
+            var rule = await _context.AlertRules.FindAsync(ruleId);
+            if (rule != null)
+            {
+                _context.AlertRules.Remove(rule);
+            }
         }
 
         public async Task SaveChangesAsync()

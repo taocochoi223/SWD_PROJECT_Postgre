@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SWD.API.Dtos;
 using SWD.BLL.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SWD.API.Controllers
 {
     [Route("api/notifications")]
     [ApiController]
+    [Authorize]
     public class NotificationController : ControllerBase
     {
         private readonly INotificationService _notiService;
@@ -23,26 +25,36 @@ namespace SWD.API.Controllers
         {
             try
             {
+                // Validate userId
+                if (userId <= 0)
+                    return BadRequest(new { message = "UserId không hợp lệ" });
+
                 var notis = await _notiService.GetUserNotificationsAsync(userId);
 
                 var notiDtos = notis.Select(n => new NotificationDto
                 {
                     NotiId = n.NotiId,
-                    HistoryId = n.HistoryId,
+                    RuleId = n.RuleId,
                     UserId = n.UserId,
                     Message = n.Message,
                     SentAt = n.SentAt,
                     IsRead = n.IsRead,
-                    SensorId = n.History?.SensorId,
-                    SensorName = n.History?.Sensor?.Name,
-                    Severity = n.History?.Severity,
-                    TriggeredAt = n.History?.TriggeredAt
+                    SensorId = n.Rule?.SensorId,
+                    SensorName = n.Rule?.Sensor?.Name,
+                    Severity = n.Rule?.Priority, // Map Priority to Severity
+                    TriggeredAt = n.SentAt // Notification sent time is trigger time
                 }).ToList();
+
+                var unreadCount = notiDtos.Count(n => n.IsRead == false);
 
                 return Ok(new
                 {
-                    message = "Lấy danh sách thông báo thành công",
+                    message = notiDtos.Count > 0 
+                        ? "Lấy danh sách thông báo thành công" 
+                        : "Người dùng chưa có thông báo nào",
+                    userId = userId,
                     count = notiDtos.Count,
+                    unreadCount = unreadCount,
                     data = notiDtos
                 });
             }
@@ -60,13 +72,19 @@ namespace SWD.API.Controllers
         {
             try
             {
+                // Validate userId
+                if (userId <= 0)
+                    return BadRequest(new { message = "UserId không hợp lệ" });
+
                 var notis = await _notiService.GetUserNotificationsAsync(userId);
                 var unreadCount = notis.Count(n => n.IsRead == false);
 
-                return Ok(new
-                {
+                return Ok(new 
+                { 
                     message = "Lấy số thông báo chưa đọc thành công",
-                    unread_count = unreadCount
+                    userId = userId,
+                    unread_count = unreadCount,
+                    total_count = notis.Count
                 });
             }
             catch (Exception ex)

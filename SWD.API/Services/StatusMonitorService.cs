@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using SWD.API.Hubs;
 using SWD.BLL.Interfaces;
+using SWD.DAL.Models;
 
 namespace SWD.API.Services
 {
@@ -14,8 +15,8 @@ namespace SWD.API.Services
         private readonly IHubContext<SensorHub> _hubContext;
         private readonly IConfiguration _configuration;
 
-        private int CheckIntervalSeconds => int.Parse(_configuration["StatusMonitor:CheckIntervalSeconds"] ?? "60");
-        private int OfflineThresholdMinutes => int.Parse(_configuration["StatusMonitor:OfflineThresholdMinutes"] ?? "5");
+        private int CheckIntervalSeconds => int.Parse(_configuration["StatusMonitor:CheckIntervalSeconds"] ?? "10");
+        private int OfflineThresholdSeconds => int.Parse(_configuration["StatusMonitor:OfflineThresholdSeconds"] ?? "15");
 
         public StatusMonitorService(
             ILogger<StatusMonitorService> logger,
@@ -31,7 +32,7 @@ namespace SWD.API.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation($"StatusMonitorService started. Check interval: {CheckIntervalSeconds}s, Offline threshold: {OfflineThresholdMinutes}m");
+            _logger.LogInformation($"StatusMonitorService started. Check interval: {CheckIntervalSeconds}s, Offline threshold: {OfflineThresholdSeconds}s");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -64,8 +65,26 @@ namespace SWD.API.Services
                 return;
             }
 
-            var offlineThreshold = DateTime.UtcNow.AddMinutes(-OfflineThresholdMinutes); // Compare UTC directly
-            var hubsToMarkOffline = onlineHubs.Where(h => h.LastHandshake < offlineThreshold).ToList();
+            DateTime vietnamNow;
+            try 
+            {
+                vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+            }
+            catch
+            {
+                try 
+                {
+                     vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok"));
+                }
+                catch
+                {
+                     vietnamNow = DateTime.UtcNow.AddHours(7);
+                }
+            }
+            
+            var offlineThresholdIdx = vietnamNow.AddSeconds(-OfflineThresholdSeconds);
+             // Compare with local time since DB stores local time
+            var hubsToMarkOffline = onlineHubs.Where(h => (h.LastHandshake ?? DateTime.MinValue) < offlineThresholdIdx).ToList();
 
             if (!hubsToMarkOffline.Any())
             {
@@ -78,8 +97,8 @@ namespace SWD.API.Services
                 try
                 {
                     // Calculate how long hub has been inactive
-                    var inactiveMinutes = (DateTime.UtcNow - (hub.LastHandshake ?? DateTime.UtcNow)).TotalMinutes;
-
+                    var inactiveMinutes = (vietnamNow - (hub.LastHandshake ?? vietnamNow)).TotalMinutes;
+                    
                     _logger.LogWarning($"Hub {hub.HubId} ({hub.Name}) inactive for {inactiveMinutes:F1} minutes. Marking as offline.");
 
                     // Update hub status
@@ -89,13 +108,15 @@ namespace SWD.API.Services
                     // Auto-set all sensors of this hub to Offline
                     var sensors = await sensorService.GetSensorsByHubIdAsync(hub.HubId);
                     var onlineSensorsCount = 0;
-
+                    
                     foreach (var sensor in sensors)
                     {
                         if (sensor.Status == "Online")
                         {
                             onlineSensorsCount++;
                             await sensorService.UpdateSensorStatusAsync(sensor.SensorId, "Offline");
+                            sensor.Status = "Offline";
+                            await BroadcastSensorOffline(sensor, hub.HubId);
                         }
                     }
 
@@ -129,6 +150,24 @@ namespace SWD.API.Services
 
             // Also broadcast to hub-specific group
             await _hubContext.Clients.Group($"hub_{hub.HubId}").SendAsync("ReceiveHubOffline", statusData);
+        }
+
+        private async Task BroadcastSensorOffline(Sensor sensor, int hubId)
+        {
+            var sensorData = new
+            {
+                hubId = hubId,
+                sensorId = sensor.SensorId,
+                sensorName = sensor.Name,
+                typeName = sensor.Type?.TypeName ?? "Unknown",
+                currentValue = 0,
+                unit = sensor.Type?.Unit ?? "",
+                status = "Offline",
+                lastUpdate = DateTime.UtcNow
+            };
+
+            await _hubContext.Clients.All.SendAsync("ReceiveSensorUpdate", sensorData);
+            await _hubContext.Clients.Group($"hub_{hubId}").SendAsync("ReceiveSensorUpdate", sensorData);
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)

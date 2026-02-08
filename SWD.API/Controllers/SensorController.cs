@@ -6,7 +6,7 @@ using SWD.DAL.Models;
 
 namespace SWD.API.Controllers
 {
-    [Route("api/sensors")]  // ← ĐỔI từ "api/sensor"
+    [Route("api/sensors")]
     [ApiController]
     [Authorize]
     public class SensorController : ControllerBase
@@ -28,6 +28,9 @@ namespace SWD.API.Controllers
         {
             try
             {
+                var siteIdClaim = User.FindFirst("SiteId")?.Value;  
+                int? userSiteId = !string.IsNullOrEmpty(siteIdClaim) ? int.Parse(siteIdClaim) : null;
+
                 List<Sensor> sensors;
 
                 if (hub_id.HasValue)
@@ -42,6 +45,10 @@ namespace SWD.API.Controllers
                 {
                     sensors = await _sensorService.GetAllSensorsAsync();
                 }
+                if(userSiteId.HasValue)
+                {
+                    sensors = sensors.Where(s => s.Hub != null && s.Hub.SiteId == userSiteId.Value).ToList();
+                }
 
                 var sensorDtos = sensors.Select(s => new SensorDto
                 {
@@ -51,8 +58,8 @@ namespace SWD.API.Controllers
                     TypeId = s.TypeId,
                     TypeName = s.Type?.TypeName,
                     SensorName = s.Name,
-                    CurrentValue = s.CurrentValue,
-                    LastUpdate = s.LastUpdate,
+                    CurrentValue = 0,
+                    LastUpdate = null,
                     Status = s.Status
                 }).ToList();
 
@@ -60,6 +67,7 @@ namespace SWD.API.Controllers
                 {
                     message = "Lấy danh sách cảm biến thành công",
                     count = sensorDtos.Count,
+                    userSiteId = userSiteId, 
                     data = sensorDtos
                 });
             }
@@ -78,23 +86,27 @@ namespace SWD.API.Controllers
         {
             try
             {
+                // Validate sensor name
                 if (string.IsNullOrWhiteSpace(request.Name))
                     return BadRequest(new { message = "Tên cảm biến không được để trống" });
 
-                if (request.HubId <= 0)
-                    return BadRequest(new { message = "HubId không hợp lệ" });
+                if (request.Name.Length < 2)
+                    return BadRequest(new { message = "Tên cảm biến phải có ít nhất 2 ký tự" });
 
+                // Validate HubId
+                if (request.HubId <= 0)
+                    return BadRequest(new { message = "HubId không hợp lệ. Vui lòng chọn Hub cho cảm biến" });
+
+                // Validate TypeId
                 if (request.TypeId <= 0)
-                    return BadRequest(new { message = "TypeId không hợp lệ" });
+                    return BadRequest(new { message = "TypeId không hợp lệ. Vui lòng chọn loại cảm biến" });
 
                 var sensor = new Sensor
                 {
                     HubId = request.HubId,
                     TypeId = request.TypeId,
                     Name = request.Name,
-                    Status = "Active",
-                    CurrentValue = 0,
-                    LastUpdate = DateTime.UtcNow
+                    Status = "Active"
                 };
 
                 await _sensorService.RegisterSensorAsync(sensor);
@@ -110,14 +122,26 @@ namespace SWD.API.Controllers
                         TypeId = sensor.TypeId,
                         TypeName = null,
                         SensorName = sensor.Name,
-                        CurrentValue = sensor.CurrentValue,
-                        LastUpdate = sensor.LastUpdate,
+                        CurrentValue = 0,
+                        LastUpdate = null,
                         Status = sensor.Status
                     }
                 });
             }
             catch (Exception ex)
             {
+                // Handle specific errors
+                if (ex.Message.Contains("foreign key") || ex.Message.Contains("FK_"))
+                {
+                    if (ex.Message.Contains("HubId"))
+                        return BadRequest(new { message = "HubId không tồn tại trong hệ thống. Vui lòng chọn Hub hợp lệ" });
+                    if (ex.Message.Contains("TypeId"))
+                        return BadRequest(new { message = "TypeId không tồn tại trong hệ thống. Vui lòng chọn loại cảm biến hợp lệ" });
+                }
+
+                if (ex.Message.Contains("duplicate") || ex.Message.Contains("unique"))
+                    return BadRequest(new { message = "Tên cảm biến đã tồn tại trong Hub này. Vui lòng sử dụng tên khác" });
+
                 return BadRequest(new { message = "Lỗi khi đăng ký cảm biến: " + ex.Message });
             }
         }
@@ -133,11 +157,24 @@ namespace SWD.API.Controllers
         {
             try
             {
+                // Validate sensor ID
+                if (id <= 0)
+                    return BadRequest(new { message = "SensorId không hợp lệ" });
+
+                // Check if sensor exists
+                var sensor = await _sensorService.GetSensorByIdAsync(id);
+                if (sensor == null)
+                    return NotFound(new { message = "Không tìm thấy cảm biến với ID: " + id });
+
                 DateTime fromDate;
                 DateTime toDate;
 
                 if (from.HasValue && to.HasValue)
                 {
+                    // Validate date range
+                    if (from.Value > to.Value)
+                        return BadRequest(new { message = "Ngày bắt đầu không được lớn hơn ngày kết thúc" });
+
                     fromDate = from.Value.Date;
                     toDate = to.Value.Date.AddDays(1).AddTicks(-1);
                 }
@@ -149,10 +186,11 @@ namespace SWD.API.Controllers
 
                 var readings = await _sensorService.GetSensorReadingsAsync(id, fromDate, toDate);
 
-                var readingDtos = readings.Select(r => new ReadingDto
+                var readingDtos = readings.Select(r => new SensorDataDto
                 {
-                    ReadingId = r.ReadingId,
+                    DataId = r.DataId,
                     SensorId = r.SensorId,
+                    HubId = r.HubId,
                     SensorName = r.Sensor?.Name,
                     SensorTypeName = r.Sensor?.Type?.TypeName,
                     Value = r.Value,
@@ -161,48 +199,20 @@ namespace SWD.API.Controllers
 
                 return Ok(new
                 {
-                    message = "Lấy dữ liệu đo của cảm biến thành công",
+                    message = readingDtos.Count > 0 
+                        ? "Lấy dữ liệu đo của cảm biến thành công" 
+                        : "Không có dữ liệu đo trong khoảng thời gian này",
                     sensorId = id,
+                    sensorName = sensor.Name,
                     count = readingDtos.Count,
+                    fromDate = from,
+                    toDate = to,
                     data = readingDtos
                 });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { message = "Lỗi khi lấy dữ liệu đo: " + ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Receive Telemetry - IoT Gateway sends data here
-        /// </summary>
-        [HttpPost("telemetry")]
-        [AllowAnonymous]
-        public async Task<IActionResult> ReceiveTelemetry(
-            [FromQuery] int sensorId,
-            [FromQuery] float value)
-        {
-            try
-            {
-                if (sensorId <= 0)
-                    return BadRequest(new { message = "SensorId không hợp lệ" });
-
-                await _sensorService.ProcessReadingAsync(sensorId, value);
-                return Ok(new
-                {
-                    message = "Nhận dữ liệu telemetry thành công",
-                    sensorId = sensorId,
-                    value = value,
-                    timestamp = DateTime.UtcNow
-                });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new
-                {
-                    message = "Lỗi khi xử lý dữ liệu telemetry",
-                    error = ex.Message
-                });
             }
         }
 
@@ -225,6 +235,63 @@ namespace SWD.API.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = "Lỗi khi lấy danh sách loại cảm biến: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Update Sensor
+        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,ADMIN,Manager,MANAGER")]
+        public async Task<IActionResult> UpdateSensorAsync(int id, [FromBody] UpdateSensorDto request)
+        {
+            try
+            {
+                if (id <= 0) return BadRequest(new { message = "SensorId không hợp lệ" });
+
+                var sensor = await _sensorService.GetSensorByIdAsync(id);
+                if (sensor == null) return NotFound(new { message = "Không tìm thấy cảm biến" });
+
+                if (!string.IsNullOrEmpty(request.Name))
+                {
+                    if (request.Name.Length < 2) return BadRequest(new { message = "Tên quá ngắn" });
+                    sensor.Name = request.Name;
+                }
+
+                if (request.TypeId.HasValue && request.TypeId > 0)
+                {
+                    sensor.TypeId = request.TypeId.Value;
+                }
+
+                await _sensorService.UpdateSensorAsync(sensor);
+                return Ok(new { message = "Cập nhật cảm biến thành công" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Lỗi cập nhật: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Delete Sensor
+        /// </summary>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,ADMIN,Manager,MANAGER")]
+        public async Task<IActionResult> DeleteSensorAsync(int id)
+        {
+            try
+            {
+                if (id <= 0) return BadRequest(new { message = "SensorId không hợp lệ" });
+                
+                var sensor = await _sensorService.GetSensorByIdAsync(id);
+                if (sensor == null) return NotFound(new { message = "Không tìm thấy cảm biến" });
+
+                await _sensorService.DeleteSensorAsync(id);
+                return Ok(new { message = "Xóa cảm biến thành công" });
+            }
+            catch (Exception ex) 
+            {
+                return BadRequest(new { message = "Lỗi xóa cảm biến (Có thể do còn dữ liệu ràng buộc): " + ex.Message });
             }
         }
     }

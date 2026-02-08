@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 
 namespace SWD.API.Hubs
 {
@@ -41,9 +41,9 @@ namespace SWD.API.Hubs
             string groupName = $"hub_{hubId}";
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
             _logger.LogInformation($"Client {Context.ConnectionId} joined group {groupName}");
-
-            await Clients.Caller.SendAsync("JoinedGroup", new
-            {
+            
+            await Clients.Caller.SendAsync("JoinedGroup", new 
+            { 
                 hubId = hubId,
                 groupName = groupName,
                 message = $"Successfully joined hub {hubId} updates"
@@ -59,9 +59,9 @@ namespace SWD.API.Hubs
             string groupName = $"hub_{hubId}";
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
             _logger.LogInformation($"Client {Context.ConnectionId} left group {groupName}");
-
-            await Clients.Caller.SendAsync("LeftGroup", new
-            {
+            
+            await Clients.Caller.SendAsync("LeftGroup", new 
+            { 
                 hubId = hubId,
                 groupName = groupName,
                 message = $"Left hub {hubId} updates"

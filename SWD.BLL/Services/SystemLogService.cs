@@ -20,7 +20,7 @@ namespace SWD.BLL.Services
                 Source = source,
                 RawPayload = payload,
                 ErrorMessage = errorMsg,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
             await _logRepo.AddLogAsync(log);
             await _logRepo.SaveChangesAsync();

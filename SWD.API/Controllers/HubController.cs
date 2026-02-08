@@ -21,11 +21,22 @@ namespace SWD.API.Controllers
         /// Get all hubs
         /// </summary>
         [HttpGet]
+
         public async Task<IActionResult> GetAllHubsAsync()
         {
             try
             {
+                var siteIdClaim = User.FindFirst("SiteId")?.Value;
+                int? userSiteId = !string.IsNullOrEmpty(siteIdClaim) ? int.Parse(siteIdClaim) : null;
+
                 var hubs = await _hubService.GetAllHubsAsync();
+
+                // Filter theo Site của user
+                if (userSiteId.HasValue)
+                {
+                    hubs = hubs.Where(h => h.SiteId == userSiteId.Value).ToList();
+                }
+
                 var hubDtos = hubs.Select(h => new HubDto
                 {
                     HubId = h.HubId,
@@ -37,10 +48,12 @@ namespace SWD.API.Controllers
                     SiteName = h.Site?.Name ?? "Unassigned",
                     SensorCount = h.Sensors?.Count ?? 0
                 }).ToList();
+
                 return Ok(new
                 {
                     message = "Lấy danh sách Hub thành công",
                     count = hubDtos.Count,
+                    userSiteId = userSiteId, 
                     data = hubDtos
                 });
             }
@@ -61,6 +74,14 @@ namespace SWD.API.Controllers
                 var hub = await _hubService.GetHubByIdAsync(id);
                 if (hub == null)
                     return NotFound(new { message = "Không tìm thấy Hub với ID: " + id });
+
+                var siteIdClaim = User.FindFirst("SiteId")?.Value;
+                int? userSiteId = !string.IsNullOrEmpty(siteIdClaim) ? int.Parse(siteIdClaim) : null;
+
+                if (userSiteId.HasValue && hub.SiteId != userSiteId.Value)
+                {
+                    return StatusCode(403, new { message = "Bạn không có quyền truy cập Hub này" });
+                }
 
                 var hubDto = new HubDto
                 {
@@ -94,16 +115,35 @@ namespace SWD.API.Controllers
         {
             try
             {
+                // Validate hub name
                 if (string.IsNullOrWhiteSpace(request.Name))
                     return BadRequest(new { message = "Tên Hub không được để trống" });
 
+                if (request.Name.Length < 2)
+                    return BadRequest(new { message = "Tên Hub phải có ít nhất 2 ký tự" });
+
+                // Validate MAC address
                 if (string.IsNullOrWhiteSpace(request.MacAddress))
                     return BadRequest(new { message = "Địa chỉ MAC không được để trống" });
 
+                // MAC address format validation (XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX)
+                // var macPattern = @"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$";
+                // if (!System.Text.RegularExpressions.Regex.IsMatch(request.MacAddress, macPattern))
+                //     return BadRequest(new { message = "Địa chỉ MAC không đúng định dạng. VD: AA:BB:CC:DD:EE:FF hoặc AA-BB-CC-DD-EE-FF" });
+
+                // Validate SiteId
+                if (request.SiteId <= 0)
+                    return BadRequest(new { message = "SiteId không hợp lệ. Vui lòng chọn địa điểm cho Hub" });
+
+                // Check for duplicate MAC address
                 var ex = await _hubService.GetHubByMacAsync(request.MacAddress);
                 if (ex != null)
                 {
-                    return BadRequest(new { message = "Hub với địa chỉ MAC này đã tồn tại" });
+                    return BadRequest(new { 
+                        message = "Hub với địa chỉ MAC này đã tồn tại",
+                        existingHubId = ex.HubId,
+                        existingHubName = ex.Name
+                    });
                 }
 
                 var hub = new Hub
@@ -111,7 +151,7 @@ namespace SWD.API.Controllers
                     SiteId = request.SiteId,
                     Name = request.Name,
                     MacAddress = request.MacAddress,
-                    IsOnline = false
+                    IsOnline = false 
                 };
 
                 await _hubService.CreateHubAsync(hub);
@@ -132,6 +172,13 @@ namespace SWD.API.Controllers
             }
             catch (Exception ex)
             {
+                // Handle foreign key constraint
+                if (ex.Message.Contains("foreign key") || ex.Message.Contains("FK_"))
+                {
+                    if (ex.Message.Contains("SiteId"))
+                        return BadRequest(new { message = "SiteId không tồn tại trong hệ thống. Vui lòng chọn địa điểm hợp lệ" });
+                }
+
                 return BadRequest(new { message = "Lỗi khi tạo Hub: " + ex.Message });
             }
         }
@@ -145,38 +192,72 @@ namespace SWD.API.Controllers
         {
             try
             {
+                // Validate hub ID
+                if (id <= 0)
+                    return BadRequest(new { message = "HubId không hợp lệ" });
+
                 var existingHub = await _hubService.GetHubByIdAsync(id);
                 if (existingHub == null)
                     return NotFound(new { message = "Không tìm thấy Hub với ID: " + id });
 
+                // Update SiteId
                 if (request.SiteId.HasValue)
+                {
+                    if (request.SiteId.Value <= 0)
+                        return BadRequest(new { message = "SiteId không hợp lệ" });
+                    
                     existingHub.SiteId = request.SiteId.Value;
+                }
 
+                // Update Name
                 if (!string.IsNullOrEmpty(request.Name))
+                {
+                    if (request.Name.Length < 2)
+                        return BadRequest(new { message = "Tên Hub phải có ít nhất 2 ký tự" });
+                    
                     existingHub.Name = request.Name;
+                }
 
+                // Update MAC address
                 if (!string.IsNullOrEmpty(request.MacAddress) && request.MacAddress != existingHub.MacAddress)
                 {
+                    // Validate MAC format
+                    var macPattern = @"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$";
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(request.MacAddress, macPattern))
+                        return BadRequest(new { message = "Địa chễ MAC không đúng định dạng. VD: AA:BB:CC:DD:EE:FF hoặc AA-BB-CC-DD-EE-FF" });
+
+                    // Check for duplicate
                     var duplicateHub = await _hubService.GetHubByMacAsync(request.MacAddress);
                     if (duplicateHub != null && duplicateHub.HubId != id)
                     {
-                        return BadRequest(new { message = "Hub với địa chỉ MAC này đã tồn tại" });
+                        return BadRequest(new { 
+                            message = "Hub với địa chỉ MAC này đã tồn tại",
+                            existingHubId = duplicateHub.HubId,
+                            existingHubName = duplicateHub.Name
+                        });
                     }
                     existingHub.MacAddress = request.MacAddress;
                 }
 
                 await _hubService.UpdateHubAsync(existingHub);
-                return Ok(new
-                {
-                    message = "Cập nhật Hub thành công",
+                return Ok(new 
+                { 
+                    message = "Cập nhật Hub thành công", 
                     hubId = existingHub.HubId,
                     name = existingHub.Name,
-                    macAdress = existingHub.MacAddress,
+                    macAddress = existingHub.MacAddress,
                     siteId = existingHub.SiteId
                 });
             }
             catch (Exception ex)
             {
+                // Handle foreign key constraint
+                if (ex.Message.Contains("foreign key") || ex.Message.Contains("FK_"))
+                {
+                    if (ex.Message.Contains("SiteId"))
+                        return BadRequest(new { message = "SiteId không tồn tại trong hệ thống. Vui lòng chọn địa điểm hợp lệ" });
+                }
+
                 return BadRequest(new { message = "Lỗi khi cập nhật Hub: " + ex.Message });
             }
         }
@@ -190,21 +271,37 @@ namespace SWD.API.Controllers
         {
             try
             {
+                // Validate hub ID
+                if (id <= 0)
+                    return BadRequest(new { message = "HubId không hợp lệ" });
+
                 var existingHub = await _hubService.GetHubByIdAsync(id);
                 if (existingHub == null)
                     return NotFound(new { message = "Không tìm thấy Hub với ID: " + id });
 
+                // Check if hub has sensors
+                var sensorCount = existingHub.Sensors?.Count ?? 0;
+                if (sensorCount > 0)
+                    return BadRequest(new { 
+                        message = $"Không thể xóa Hub này vì còn {sensorCount} cảm biến đang hoạt động. Vui lòng xóa hoặc chuyển các cảm biến trước",
+                        sensorCount = sensorCount
+                    });
+
                 await _hubService.DeleteHubAsync(id);
 
-                return Ok(new
-                {
-                    message = "Xóa Hub thành công",
+                return Ok(new 
+                { 
+                    message = "Xóa Hub thành công", 
                     hubId = id,
                     name = existingHub.Name
                 });
             }
             catch (Exception ex)
             {
+                // Handle constraint violations
+                if (ex.Message.Contains("constraint") || ex.Message.Contains("REFERENCE"))
+                    return BadRequest(new { message = "Không thể xóa Hub này vì còn dữ liệu liên quan (cảm biến, alert, v.v.). Vui lòng xóa dữ liệu liên quan trước" });
+
                 return BadRequest(new { message = "Lỗi khi xóa Hub: " + ex.Message });
             }
         }
@@ -222,6 +319,15 @@ namespace SWD.API.Controllers
                 if (hub == null)
                     return NotFound(new { message = "Không tìm thấy Hub với ID: " + id });
 
+                // KIỂM TRA PHÂN QUYỀN
+                var siteIdClaim = User.FindFirst("SiteId")?.Value;
+                int? userSiteId = !string.IsNullOrEmpty(siteIdClaim) ? int.Parse(siteIdClaim) : null;
+
+                if (userSiteId.HasValue && hub.SiteId != userSiteId.Value)
+                {
+                    return StatusCode(403, new { message = "Bạn không có quyền truy cập Hub này" });
+                }
+
                 var result = new HubReadingsDto
                 {
                     HubId = hub.HubId,
@@ -233,7 +339,7 @@ namespace SWD.API.Controllers
                         Name = s.Name,
                         TypeName = s.Type?.TypeName ?? "Unknown",
                         Unit = s.Type?.Unit ?? "",
-                        Readings = s.Readings?.Select(r => new ReadingValueDto
+                        Readings = s.SensorDatas?.Select(r => new ReadingValueDto
                         {
                             RecordedAt = r.RecordedAt ?? DateTime.MinValue,
                             Value = (float)r.Value
@@ -257,7 +363,7 @@ namespace SWD.API.Controllers
         /// Get Current Temperature - Lấy dữ liệu môi trường hiện tại của Hub (Temperature, Humidity, Pressure)
         /// </summary>
         [HttpGet("{id}/current-temperature")]
-        public async Task<IActionResult> GetCurrentTemperatureAsync(int id)
+        public async Task<IActionResult> GetCurrentEnvironmentDataAsync(int id)
         {
             try
             {
@@ -265,7 +371,15 @@ namespace SWD.API.Controllers
                 if (hub == null)
                     return NotFound(new { message = "Không tìm thấy Hub với ID: " + id });
 
-                // Lấy environment sensors từ Service (Temperature, Humidity, Pressure)
+                // KIỂM TRA PHÂN QUYỀN
+                var siteIdClaim = User.FindFirst("SiteId")?.Value;
+                int? userSiteId = !string.IsNullOrEmpty(siteIdClaim) ? int.Parse(siteIdClaim) : null;
+
+                if (userSiteId.HasValue && hub.SiteId != userSiteId.Value)
+                {
+                    return StatusCode(403, new { message = "Bạn không có quyền truy cập Hub này" });
+                }
+
                 var envSensors = await _hubService.GetHubCurrentTemperatureAsync(id);
 
                 if (!envSensors.Any())
@@ -276,9 +390,9 @@ namespace SWD.API.Controllers
                     sensorId = s.SensorId,
                     sensorName = s.Name,
                     typeName = s.Type?.TypeName,
-                    currentValue = s.CurrentValue,
+                    currentValue = s.SensorDatas?.OrderByDescending(d => d.RecordedAt).FirstOrDefault()?.Value ?? 0,
                     unit = s.Type?.Unit ?? "",
-                    lastUpdate = s.LastUpdate,
+                    lastUpdate = s.SensorDatas?.OrderByDescending(d => d.RecordedAt).FirstOrDefault()?.RecordedAt,
                     status = s.Status
                 }).ToList();
 

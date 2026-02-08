@@ -21,7 +21,7 @@ namespace SWD.BLL.Services
             {
                 return null;
             }
-
+            
             if (BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
             {
                 return user;
@@ -65,6 +65,22 @@ namespace SWD.BLL.Services
                 await _userRepo.UpdateUserAsync(user);
                 await _userRepo.SaveChangesAsync();
             }
+        }
+
+        public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword){
+            var user = await _userRepo.GetUserByIdAsync(userId);
+            if(user == null || user.IsActive == false){
+                return false;
+            }
+
+            if(!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash)){  
+                return false;
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            await _userRepo.UpdateUserAsync(user);
+            await _userRepo.SaveChangesAsync();
+            return true;
         }
     }
 }

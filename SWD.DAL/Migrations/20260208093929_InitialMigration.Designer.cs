@@ -12,63 +12,18 @@ using SWD.DAL.Models;
 namespace SWD.DAL.Migrations
 {
     [DbContext(typeof(IoTFinalDbContext))]
-    [Migration("20260125031748_AddSystemLogColumns")]
-    partial class AddSystemLogColumns
+    [Migration("20260208093929_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "8.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("SWD.DAL.Models.AlertHistory", b =>
-                {
-                    b.Property<long>("HistoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("HistoryID");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("HistoryId"));
-
-                    b.Property<string>("Message")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp");
-
-                    b.Property<int>("RuleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("RuleID");
-
-                    b.Property<int>("SensorId")
-                        .HasColumnType("integer")
-                        .HasColumnName("SensorID");
-
-                    b.Property<string>("Severity")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime?>("TriggeredAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<double?>("ValueAtTrigger")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("HistoryId");
-
-                    b.HasIndex("RuleId");
-
-                    b.HasIndex("SensorId");
-
-                    b.ToTable("AlertHistory", (string)null);
-                });
 
             modelBuilder.Entity("SWD.DAL.Models.AlertRule", b =>
                 {
@@ -113,7 +68,8 @@ namespace SWD.DAL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("SensorID");
 
-                    b.HasKey("RuleId");
+                    b.HasKey("RuleId")
+                        .HasName("PK__AlertRul__110458C20C3B9D6E");
 
                     b.HasIndex("SensorId");
 
@@ -135,7 +91,7 @@ namespace SWD.DAL.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<DateTime?>("LastHandshake")
-                        .HasColumnType("timestamp");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("MacAddress")
                         .IsRequired()
@@ -151,11 +107,12 @@ namespace SWD.DAL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("SiteID");
 
-                    b.HasKey("HubId");
+                    b.HasKey("HubId")
+                        .HasName("PK__Hub__9F4FFECFC0EB50EB");
 
                     b.HasIndex("SiteId");
 
-                    b.HasIndex(new[] { "MacAddress" }, "UQ__Hub__MacAddress")
+                    b.HasIndex(new[] { "MacAddress" }, "UQ__Hub__50EDF1CDFDF0BE28")
                         .IsUnique();
 
                     b.ToTable("Hub", (string)null);
@@ -170,10 +127,6 @@ namespace SWD.DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("NotiId"));
 
-                    b.Property<long>("HistoryId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("HistoryID");
-
                     b.Property<bool?>("IsRead")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -183,18 +136,23 @@ namespace SWD.DAL.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<int>("RuleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("RuleID");
+
                     b.Property<DateTime?>("SentAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
                         .HasColumnName("UserID");
 
-                    b.HasKey("NotiId");
+                    b.HasKey("NotiId")
+                        .HasName("PK__Notifica__EDC08EF20E2D3E48");
 
-                    b.HasIndex("HistoryId");
+                    b.HasIndex("RuleId");
 
                     b.HasIndex("UserId");
 
@@ -212,8 +170,8 @@ namespace SWD.DAL.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Description")
                         .HasMaxLength(255)
@@ -224,38 +182,10 @@ namespace SWD.DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.HasKey("OrgId");
+                    b.HasKey("OrgId")
+                        .HasName("PK__Organiza__420C9E0C845179E3");
 
                     b.ToTable("Organization", (string)null);
-                });
-
-            modelBuilder.Entity("SWD.DAL.Models.Reading", b =>
-                {
-                    b.Property<long>("ReadingId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("ReadingID");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("ReadingId"));
-
-                    b.Property<DateTime?>("RecordedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(6)
-                        .HasColumnType("timestamp(6) with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<int>("SensorId")
-                        .HasColumnType("integer")
-                        .HasColumnName("SensorID");
-
-                    b.Property<double>("Value")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("ReadingId");
-
-                    b.HasIndex(new[] { "SensorId", "RecordedAt" }, "IDX_Reading_Sensor_Time");
-
-                    b.ToTable("Reading", (string)null);
                 });
 
             modelBuilder.Entity("SWD.DAL.Models.Role", b =>
@@ -276,9 +206,10 @@ namespace SWD.DAL.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.HasKey("RoleId");
+                    b.HasKey("RoleId")
+                        .HasName("PK__Role__8AFACE3A10B7CB9B");
 
-                    b.HasIndex(new[] { "RoleName" }, "UQ__Role__RoleName")
+                    b.HasIndex(new[] { "RoleName" }, "UQ__Role__8A2B6160395B11F5")
                         .IsUnique();
 
                     b.ToTable("Role", (string)null);
@@ -293,16 +224,9 @@ namespace SWD.DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SensorId"));
 
-                    b.Property<double?>("CurrentValue")
-                        .HasColumnType("double precision");
-
                     b.Property<int>("HubId")
                         .HasColumnType("integer")
                         .HasColumnName("HubID");
-
-                    b.Property<DateTime?>("LastUpdate")
-                        .HasPrecision(6)
-                        .HasColumnType("timestamp(6) with time zone");
 
                     b.Property<string>("Name")
                         .HasMaxLength(100)
@@ -318,13 +242,50 @@ namespace SWD.DAL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("TypeID");
 
-                    b.HasKey("SensorId");
+                    b.HasKey("SensorId")
+                        .HasName("PK__Sensor__D809841AFEF09FD0");
 
                     b.HasIndex("HubId");
 
                     b.HasIndex("TypeId");
 
                     b.ToTable("Sensor", (string)null);
+                });
+
+            modelBuilder.Entity("SWD.DAL.Models.SensorData", b =>
+                {
+                    b.Property<long>("DataId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("DataID");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("DataId"));
+
+                    b.Property<int>("HubId")
+                        .HasColumnType("integer")
+                        .HasColumnName("HubID");
+
+                    b.Property<DateTime?>("RecordedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp(3) with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("SensorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("SensorID");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("DataId")
+                        .HasName("PK__SensorDa__C80F9C6E561FFF59");
+
+                    b.HasIndex("HubId");
+
+                    b.HasIndex(new[] { "SensorId", "RecordedAt" }, "IDX_SensorData_Sensor_Time");
+
+                    b.ToTable("SensorData", (string)null);
                 });
 
             modelBuilder.Entity("SWD.DAL.Models.SensorType", b =>
@@ -350,7 +311,8 @@ namespace SWD.DAL.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.HasKey("TypeId");
+                    b.HasKey("TypeId")
+                        .HasName("PK__SensorTy__516F0395C1AE3D64");
 
                     b.ToTable("SensorType", (string)null);
                 });
@@ -381,7 +343,8 @@ namespace SWD.DAL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("OrgID");
 
-                    b.HasKey("SiteId");
+                    b.HasKey("SiteId")
+                        .HasName("PK__Site__B9DCB9032CBAC039");
 
                     b.HasIndex("OrgId");
 
@@ -399,8 +362,8 @@ namespace SWD.DAL.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
@@ -414,7 +377,8 @@ namespace SWD.DAL.Migrations
                         .HasColumnType("character varying(50)")
                         .HasDefaultValue("EOH-Webhook");
 
-                    b.HasKey("LogId");
+                    b.HasKey("LogId")
+                        .HasName("PK__SystemLo__5E5499A8547BC738");
 
                     b.ToTable("SystemLog", (string)null);
                 });
@@ -461,7 +425,8 @@ namespace SWD.DAL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("SiteID");
 
-                    b.HasKey("UserId");
+                    b.HasKey("UserId")
+                        .HasName("PK__User__1788CCACE687B793");
 
                     b.HasIndex("OrgId");
 
@@ -469,27 +434,10 @@ namespace SWD.DAL.Migrations
 
                     b.HasIndex("SiteId");
 
-                    b.HasIndex(new[] { "Email" }, "UQ__User__Email")
+                    b.HasIndex(new[] { "Email" }, "UQ__User__A9D105342B2B253F")
                         .IsUnique();
 
                     b.ToTable("User", (string)null);
-                });
-
-            modelBuilder.Entity("SWD.DAL.Models.AlertHistory", b =>
-                {
-                    b.HasOne("SWD.DAL.Models.AlertRule", "Rule")
-                        .WithMany("AlertHistories")
-                        .HasForeignKey("RuleId")
-                        .IsRequired();
-
-                    b.HasOne("SWD.DAL.Models.Sensor", "Sensor")
-                        .WithMany("AlertHistories")
-                        .HasForeignKey("SensorId")
-                        .IsRequired();
-
-                    b.Navigation("Rule");
-
-                    b.Navigation("Sensor");
                 });
 
             modelBuilder.Entity("SWD.DAL.Models.AlertRule", b =>
@@ -497,7 +445,8 @@ namespace SWD.DAL.Migrations
                     b.HasOne("SWD.DAL.Models.Sensor", "Sensor")
                         .WithMany("AlertRules")
                         .HasForeignKey("SensorId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK__AlertRule__Senso__571DF1D5");
 
                     b.Navigation("Sensor");
                 });
@@ -507,36 +456,29 @@ namespace SWD.DAL.Migrations
                     b.HasOne("SWD.DAL.Models.Site", "Site")
                         .WithMany("Hubs")
                         .HasForeignKey("SiteId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK__Hub__SiteID__3F466844");
 
                     b.Navigation("Site");
                 });
 
             modelBuilder.Entity("SWD.DAL.Models.Notification", b =>
                 {
-                    b.HasOne("SWD.DAL.Models.AlertHistory", "History")
+                    b.HasOne("SWD.DAL.Models.AlertRule", "Rule")
                         .WithMany("Notifications")
-                        .HasForeignKey("HistoryId")
-                        .IsRequired();
+                        .HasForeignKey("RuleId")
+                        .IsRequired()
+                        .HasConstraintName("FK__Notificat__RuleID__60A75C0F");
 
                     b.HasOne("SWD.DAL.Models.User", "User")
                         .WithMany("Notifications")
                         .HasForeignKey("UserId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK__Notificat__UserI__619B8048");
 
-                    b.Navigation("History");
+                    b.Navigation("Rule");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SWD.DAL.Models.Reading", b =>
-                {
-                    b.HasOne("SWD.DAL.Models.Sensor", "Sensor")
-                        .WithMany("Readings")
-                        .HasForeignKey("SensorId")
-                        .IsRequired();
-
-                    b.Navigation("Sensor");
                 });
 
             modelBuilder.Entity("SWD.DAL.Models.Sensor", b =>
@@ -544,16 +486,37 @@ namespace SWD.DAL.Migrations
                     b.HasOne("SWD.DAL.Models.Hub", "Hub")
                         .WithMany("Sensors")
                         .HasForeignKey("HubId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK__Sensor__HubID__44FF419A");
 
                     b.HasOne("SWD.DAL.Models.SensorType", "Type")
                         .WithMany("Sensors")
                         .HasForeignKey("TypeId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK__Sensor__TypeID__45F365D3");
 
                     b.Navigation("Hub");
 
                     b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("SWD.DAL.Models.SensorData", b =>
+                {
+                    b.HasOne("SWD.DAL.Models.Hub", "Hub")
+                        .WithMany("SensorDatas")
+                        .HasForeignKey("HubId")
+                        .IsRequired()
+                        .HasConstraintName("FK__SensorData__HubID__HubData");
+
+                    b.HasOne("SWD.DAL.Models.Sensor", "Sensor")
+                        .WithMany("SensorDatas")
+                        .HasForeignKey("SensorId")
+                        .IsRequired()
+                        .HasConstraintName("FK__SensorData__SensorI__49C3F6B7");
+
+                    b.Navigation("Hub");
+
+                    b.Navigation("Sensor");
                 });
 
             modelBuilder.Entity("SWD.DAL.Models.Site", b =>
@@ -561,7 +524,8 @@ namespace SWD.DAL.Migrations
                     b.HasOne("SWD.DAL.Models.Organization", "Org")
                         .WithMany("Sites")
                         .HasForeignKey("OrgId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK__Site__OrgID__3A81B327");
 
                     b.Navigation("Org");
                 });
@@ -571,16 +535,19 @@ namespace SWD.DAL.Migrations
                     b.HasOne("SWD.DAL.Models.Organization", "Org")
                         .WithMany("Users")
                         .HasForeignKey("OrgId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK__User__OrgID__5165187F");
 
                     b.HasOne("SWD.DAL.Models.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK__User__RoleId__534D60F1");
 
                     b.HasOne("SWD.DAL.Models.Site", "Site")
                         .WithMany("Users")
-                        .HasForeignKey("SiteId");
+                        .HasForeignKey("SiteId")
+                        .HasConstraintName("FK__User__SiteID__52593CB8");
 
                     b.Navigation("Org");
 
@@ -589,18 +556,15 @@ namespace SWD.DAL.Migrations
                     b.Navigation("Site");
                 });
 
-            modelBuilder.Entity("SWD.DAL.Models.AlertHistory", b =>
+            modelBuilder.Entity("SWD.DAL.Models.AlertRule", b =>
                 {
                     b.Navigation("Notifications");
                 });
 
-            modelBuilder.Entity("SWD.DAL.Models.AlertRule", b =>
-                {
-                    b.Navigation("AlertHistories");
-                });
-
             modelBuilder.Entity("SWD.DAL.Models.Hub", b =>
                 {
+                    b.Navigation("SensorDatas");
+
                     b.Navigation("Sensors");
                 });
 
@@ -618,11 +582,9 @@ namespace SWD.DAL.Migrations
 
             modelBuilder.Entity("SWD.DAL.Models.Sensor", b =>
                 {
-                    b.Navigation("AlertHistories");
-
                     b.Navigation("AlertRules");
 
-                    b.Navigation("Readings");
+                    b.Navigation("SensorDatas");
                 });
 
             modelBuilder.Entity("SWD.DAL.Models.SensorType", b =>

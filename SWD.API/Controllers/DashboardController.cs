@@ -39,7 +39,8 @@ namespace SWD.API.Controllers
                 var sites = await _siteService.GetAllSitesAsync();
                 var hubs = await _hubService.GetAllHubsAsync();
                 var sensors = await _sensorService.GetAllSensorsAsync();
-                var alerts = await _alertService.GetAlertsWithFiltersAsync("Active", null);
+                var alerts = new List<object>(); // Placeholder as AlertHistory is removed
+                // var alerts = await _alertService.GetAlertsWithFiltersAsync("Active", null);
 
                 var stats = new
                 {
@@ -47,7 +48,7 @@ namespace SWD.API.Controllers
                     total_sites = sites.Count,
                     total_hubs = hubs.Count,
                     active_sensors = sensors.Count(s => s.Status == "Active"),
-                    pending_alerts = alerts.Count
+                    pending_alerts = 0
                 };
 
                 return Ok(stats);
@@ -67,7 +68,7 @@ namespace SWD.API.Controllers
             try
             {
                 var sites = await _siteService.GetSiteHierarchyAsync();
-
+                
                 var siteDtos = sites.Select(s => new SiteDashboardDto
                 {
                     SiteId = s.SiteId,
@@ -86,9 +87,9 @@ namespace SWD.API.Controllers
                             Name = se.Name,
                             TypeName = se.Type?.TypeName ?? "Unknown",
                             Unit = se.Type?.Unit ?? "",
-                            CurrentValue = (float?)se.CurrentValue,
-                            LastUpdate = se.LastUpdate,
-                            TotalReadings = se.Readings?.Count ?? 0
+                            CurrentValue = (float?)(se.SensorDatas?.OrderByDescending(d => d.RecordedAt).FirstOrDefault()?.Value ?? 0),
+                            LastUpdate = se.SensorDatas?.OrderByDescending(d => d.RecordedAt).FirstOrDefault()?.RecordedAt,
+                            TotalReadings = se.SensorDatas?.Count ?? 0
                         }).ToList() ?? new List<SensorDashboardDto>()
                     }).ToList() ?? new List<HubDashboardDto>()
                 }).ToList();
@@ -109,6 +110,10 @@ namespace SWD.API.Controllers
         {
             try
             {
+                // Validate siteId
+                if (siteId <= 0)
+                    return BadRequest(new { message = "SiteId không hợp lệ" });
+
                 var s = await _siteService.GetSiteHierarchyByIdAsync(siteId);
                 if (s == null)
                 {
@@ -133,14 +138,23 @@ namespace SWD.API.Controllers
                             Name = se.Name,
                             TypeName = se.Type?.TypeName ?? "Unknown",
                             Unit = se.Type?.Unit ?? "",
-                            CurrentValue = (float?)se.CurrentValue,
-                            LastUpdate = se.LastUpdate,
-                            TotalReadings = se.Readings?.Count ?? 0
+                            CurrentValue = (float?)(se.SensorDatas?.OrderByDescending(d => d.RecordedAt).FirstOrDefault()?.Value ?? 0),
+                            LastUpdate = se.SensorDatas?.OrderByDescending(d => d.RecordedAt).FirstOrDefault()?.RecordedAt,
+                            TotalReadings = se.SensorDatas?.Count ?? 0
                         }).ToList() ?? new List<SensorDashboardDto>()
                     }).ToList() ?? new List<HubDashboardDto>()
                 };
 
-                return Ok(new { message = "Lấy thông tin dashboard theo địa điểm thành công", data = siteDto });
+                var hubCount = siteDto.Hubs.Count;
+                var message = hubCount > 0 
+                    ? "Lấy thông tin dashboard theo địa điểm thành công" 
+                    : "Lấy thông tin thành công nhưng địa điểm này chưa có Hub nào";
+
+                return Ok(new { 
+                    message = message, 
+                    data = siteDto,
+                    hubCount = hubCount
+                });
             }
             catch (Exception ex)
             {
